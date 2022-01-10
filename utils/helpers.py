@@ -29,4 +29,5 @@ def validate_price_status(prices: PythPriceAccount):
                 pr.product.symbol,
                 pr.aggregate_price_info.price
             ))
+            print(payload)
             return payload

@@ -1,54 +1,7 @@
 class SolanaTokens:
-    BASE = {
-        'USDT',
-        'SOL',
-        'LUNA',
-        'LINK',
-        'GRT',
-        'AR',
-        'AUDIO',
-        'REN',
-        'RAY',
-        'SERUM',
-        'INJ',
-        'CVC',
-        'C98',
-        'AKT',
-        'MNGO',
-        'ATLAS',
-        'BAND',
-        'HXRO',
-        'ALEPH',
-        'AURY',
-        'FIDA',
-        'SAMO',
-        'KIN',
-        'SLIM',
-        'POLIS',
-        'DFL',
-        'MSOL',
-        'DIA',
-        'RAMP',
-        'PRQ',
-        'FRONT',
-        'INSUR',
-        'OOE',
-        'OXY',
-        'LIKE',
-        'SLRS',
-        'PRISM',
-        'DXL',
-        'TULIP',
-        'SNY',
-        'MAPS',
-        'WOOF',
-        'BDP',
-        'XTAG',
-        'CRWNY',
-        'FAB',
-        'CRP',
-        'SPWN',
-        'SAO',
-        'CHEEMS'
-        'STEP'
-    }
+    with open('./solana_tokens.txt', 'r') as txt:
+        tokens = list()
+        for token in txt.read().splitlines():
+            tokens.append(token.replace('\"', '').rstrip(','))
+
+    BASE = tokens
