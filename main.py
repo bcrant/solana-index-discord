@@ -1,7 +1,10 @@
 import asyncio
 from pythclient.pythclient import PythClient
 from pythclient.utils import get_key
-from utils.helpers import limit_to_solana_tokens, validate_price_status
+from utils.helpers import \
+    derive_index, \
+    limit_to_solana_tokens, \
+    validate_price_status
 
 
 async def main():
@@ -19,6 +22,7 @@ async def main():
             if valid_prices is not None:
                 solana_products_prices.append(valid_prices)
 
+        derive_index(solana_products_prices)
 
 if __name__ == '__main__':
     asyncio.run(main())

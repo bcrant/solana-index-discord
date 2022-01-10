@@ -1,6 +1,13 @@
 import datetime
+import pandas as pd
 from pythclient.pythaccounts import PythPriceAccount, PythPriceStatus
 from utils.const import SolanaTokens
+
+
+def derive_index(data: list[tuple]):
+    df = pd.DataFrame(data, columns=['datetime', 'symbol', 'price'])
+    print(df.info())
+    print(df.sort_values(by='price', ascending=False))
 
 
 def limit_to_solana_tokens(products_list):
@@ -8,7 +15,7 @@ def limit_to_solana_tokens(products_list):
         cp
         for cp in products_list
         if cp.attrs.get('asset_type') == 'Crypto'
-        and cp.attrs.get('base') in SolanaTokens.BASE
+        and cp.attrs.get('base') in SolanaTokens.TOP
     )
 
 
@@ -24,10 +31,8 @@ def validate_price_status(prices: PythPriceAccount):
 
         if valid_count >= 3:
             # Columns: UTC DateTime, Symbol, Price
-            payload = tuple((
+            return tuple((
                 datetime.datetime.utcnow().isoformat(),
-                pr.product.symbol,
+                pr.product.symbol.lstrip('Crypto.').rstrip('/USD'),
                 pr.aggregate_price_info.price
             ))
-            print(payload)
-            return payload
