@@ -1,11 +1,16 @@
 import asyncio
+import pandas as pd
 import pprint
 from pythclient.pythclient import PythClient
 from pythclient.utils import get_key
 from utils.helpers import \
     derive_index, \
+    get_unix_timestamps, \
+    get_trends_df, \
     limit_to_solana_tokens, \
     validate_price_status
+pd.set_option('display.max_columns', 500)
+
 
 
 async def main():
@@ -23,7 +28,12 @@ async def main():
             if valid_prices is not None:
                 solana_products_prices.append(valid_prices)
 
-        derive_index(solana_products_prices)
+        idx = derive_index(solana_products_prices)
+        #
+        # token_names: list = list(idx.keys())
+        # trends_df = get_trends_df(token_names)
+        # print(trends_df)
+        get_unix_timestamps()
 
 if __name__ == '__main__':
     asyncio.run(main())

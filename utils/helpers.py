@@ -1,21 +1,62 @@
 import datetime
+import dateutil
+import dateutil.parser
 import pandas as pd
 import pprint
-import requests
-from pycoingecko import CoinGeckoAPI
-from pythclient.pythaccounts import PythPriceAccount, PythPriceStatus
+import time
 from utils.const import SolanaTokens
-from trends import get_trends
+from pythclient.pythaccounts import PythPriceAccount, PythPriceStatus
+from pytrends.request import TrendReq
+from pycoingecko import CoinGeckoAPI
+pytrends = TrendReq(hl='en-US')
 cg = CoinGeckoAPI()
 
 
-def get_trends(tokens: list):
-    url = 'https://trends.google.com/trends/explore?q='
-    for token in tokens:
-        url += f'{token}%20crypto'
+def get_unix_timestamps():
+    utc_12M_ago_ts = int(datetime.datetime.timestamp(datetime.datetime.utcfromtimestamp(
+        int(time.time())) - dateutil.relativedelta.relativedelta(months=12)
+    ))
+    utc_now_ts = int(time.time())
+    return utc_12M_ago_ts, utc_now_ts
 
-    print('FINAL URL')
-    print(url)
+
+def get_date_from_unix_timestamp(ts: int):
+    return datetime.datetime.fromtimestamp(ts/1000).isoformat()
+
+
+def get_token_historical_data(token: str, token_list: list):
+    start_ts, end_ts = get_unix_timestamps()
+
+    token_historical_dict = dict()
+    for coin_dict in token_list:
+        if coin_dict.get('symbol') == token.lower():
+            cg_id = coin_dict.get('id')
+            historical_data = cg.get_coin_market_chart_range_by_id(
+                id=cg_id,
+                vs_currency='usd',
+                from_timestamp=start_ts,
+                to_timestamp=end_ts,
+            )
+
+            dt_idx: list = []
+            for price in historical_data.get('prices'):
+                dt_idx.append(get_date_from_unix_timestamp(price[0]))
+
+            tmp_dict: dict = {}
+            for col in historical_data.keys():
+                rows = historical_data.get(col)
+                tmp_dict[col] = list(row[1] for row in rows)
+
+            historical_data_df = pd.DataFrame(
+                data=tmp_dict,
+                index=dt_idx,
+                columns=['prices', 'market_caps', 'total_volumes']
+            )
+            print(historical_data_df.head())
+
+            token_historical_dict.update(historical_data)
+
+    return token_historical_dict
 
 
 def get_token_market_cap(token: str, token_list: list):
@@ -35,26 +76,30 @@ def get_token_market_cap(token: str, token_list: list):
     return token_data
 
 
+def get_trends_df(tokens: list):
+    url_fmt = [
+        token + ' crypto'
+        for token in tokens
+    ]
+    pytrends.build_payload(kw_list=url_fmt, timeframe='today 12-m')
+    trends_df = pytrends.interest_over_time()
+    trends_df.columns = [col.rstrip(' crypto') for col in trends_df.columns]
+    return trends_df
+
+
 def derive_index(data: list[tuple]):
     df = pd.DataFrame(data, columns=['datetime', 'symbol', 'price'])
     df['percent_total'] = df['price']/df['price'].sum()
-    print(df.info())
-    print(df.sort_values(by='price', ascending=False))
-
     token_list = cg.get_coins_list()
 
     idx = dict()
     for tok in df['symbol'].tolist():
-        idx.update(get_token_market_cap(tok, token_list))
+        # idx.update(get_token_market_cap(tok, token_list))
+        idx.update(get_token_historical_data(tok, token_list))
 
-    print('INDEX')
-    pprint.pprint(idx)
+    # pprint.pprint(idx)
 
-    get_trends(list(idx.keys()))
-
-
-# Next get weighted average
-    # what is difference between weighted average and percent of total
+    return idx
 
 
 def limit_to_solana_tokens(products_list):
