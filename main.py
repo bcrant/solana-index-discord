@@ -1,12 +1,10 @@
 import asyncio
 import pandas as pd
-import pprint
 from pythclient.pythclient import PythClient
 from pythclient.utils import get_key
-from utils.helpers import \
+from helpers import \
     derive_index, \
     get_unix_timestamps, \
-    get_trends_df, \
     limit_to_solana_tokens, \
     validate_price_status
 pd.set_option('display.max_columns', 500)

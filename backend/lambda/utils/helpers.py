@@ -2,9 +2,8 @@ import datetime
 import dateutil
 import dateutil.parser
 import pandas as pd
-import pprint
 import time
-from utils.const import SolanaTokens
+from const import SolanaTokens
 from pythclient.pythaccounts import PythPriceAccount, PythPriceStatus
 from pytrends.request import TrendReq
 from pycoingecko import CoinGeckoAPI
