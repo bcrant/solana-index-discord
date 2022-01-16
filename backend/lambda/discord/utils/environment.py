@@ -100,13 +100,3 @@ def init_logger():
     #
     # logging.getLogger('boto3').setLevel(logging.DEBUG)
     return logger
-
-
-def maybe_init_context():
-    if os.getenv('FORKED_PROCESS') != "True":
-        if os.getenv('AWS_EXECUTION_ENV') is None:
-            if os.getenv('LAMBDA_EVENT_DATA') is not None:
-                event = json.loads(os.getenv('LAMBDA_EVENT_DATA').replace('\\\"', '"'))
-            else:
-                event = {}
-            lambda_handler(event, {})

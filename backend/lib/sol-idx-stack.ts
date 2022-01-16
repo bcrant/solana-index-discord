@@ -1,7 +1,5 @@
 import * as cdk from '@aws-cdk/core';
 import * as apigateway from "@aws-cdk/aws-apigateway";
-import * as events from "@aws-cdk/aws-events";
-import * as eventTargets from "@aws-cdk/aws-events-targets";
 import * as lambda from "@aws-cdk/aws-lambda";
 import { PythonFunction } from "@aws-cdk/aws-lambda-python";
 
@@ -21,13 +19,23 @@ export class SolanaIndexStack extends cdk.Stack {
         DISCORD_APP_NAME: process.env.DISCORD_APP_NAME as string,
         DISCORD_APP_ID: process.env.DISCORD_APP_ID as string,
         DISCORD_PUBLIC_KEY: process.env.DISCORD_PUBLIC_KEY as string,
-        DISCORD_SECRET: process.env.DISCORD_SECRET as string
+        DISCORD_SECRET: process.env.DISCORD_SECRET as string,
+        DISCORD_BOT_TOKEN: process.env.DISCORD_BOT_TOKEN as string,
+        DISCORD_BOT_PERMISSIONS: process.env.DISCORD_BOT_PERMISSIONS as string,
       },
     });
 
-    const api = new apigateway.LambdaRestApi(this, "solana-index-api", {
-      handler: discordFn,
-      apiKeyRequired: true,
+    const api = new apigateway.RestApi(this, "solana-index-api", {
+      restApiName: "solana-index-api",
+      deployOptions: {
+        stageName: "prod",
+      },
+    });
+
+    const discord = api.root.addResource("discord");
+
+    discord.addMethod("GET", new apigateway.LambdaIntegration(discordFn), {
+        apiKeyRequired: true,
     });
 
     const apiKey = api.addApiKey("api-key", {
