@@ -1,6 +1,7 @@
+import path = require('path');
 import { Duration, Stack, StackProps } from 'aws-cdk-lib';
 import { LambdaIntegration, MethodLoggingLevel, RestApi } from 'aws-cdk-lib/aws-apigateway';
-import { Function, Runtime, AssetCode, Code } from 'aws-cdk-lib/aws-lambda';
+import { Function, Runtime, Code, AssetCode, DockerImageFunction, DockerImageCode } from 'aws-cdk-lib/aws-lambda';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import s3 = require('aws-cdk-lib/aws-s3');
 import { Construct } from 'constructs';
@@ -19,25 +20,13 @@ export class SolIdxStack extends Stack {
 
     this.bucket = new s3.Bucket(this, "solana-index-discord-bucket")
     
-    const restApiName: string = "solana-index-discord-api"
-    
-    this.restApi = new RestApi(this, restApiName, {
-      restApiName: restApiName,
-      deployOptions: {
-        stageName: "prod",
-        metricsEnabled: true,
-        loggingLevel: MethodLoggingLevel.ERROR,
-        dataTraceEnabled: false,
-      },
-    });
-
     const lambdaPolicy = new PolicyStatement()
     lambdaPolicy.addActions("s3:ListBucket")
     lambdaPolicy.addResources(this.bucket.bucketArn)
-
+      
     this.lambdaFunction = new Function(this, props.functionName, {
       functionName: props.functionName,
-      code: new AssetCode("./lambda"),
+      code: Code.fromAsset(`${path.resolve(__dirname)}/lambda`),
       runtime: Runtime.PYTHON_3_9,
       handler: "index.handler",
       timeout: Duration.seconds(20),
@@ -53,7 +42,22 @@ export class SolIdxStack extends Stack {
       initialPolicy: [lambdaPolicy],
     });
 
-    this.restApi.root.addMethod("GET", new LambdaIntegration(this.lambdaFunction, {}))
+
+    const restApiName: string = "solana-index-discord-api"    
+    this.restApi = new RestApi(this, restApiName, {
+      restApiName: restApiName,
+      deployOptions: {
+        stageName: "prod",
+        metricsEnabled: true,
+        loggingLevel: MethodLoggingLevel.ERROR,
+        dataTraceEnabled: false,
+      },
+    });
+
+    const discord = this.restApi.root.addResource("discord");
+    discord.addMethod("GET", new LambdaIntegration(this.lambdaFunction, {}), {
+      apiKeyRequired: true,
+    }); 
 
     const apiKey = this.restApi.addApiKey("api-key", {
       apiKeyName: "solana-index-discord-api-key",
