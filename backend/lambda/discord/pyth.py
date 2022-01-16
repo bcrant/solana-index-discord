@@ -10,7 +10,6 @@ from helpers import \
 pd.set_option('display.max_columns', 500)
 
 
-
 async def main():
     v2_first_mapping_account_key = get_key('devnet', 'mapping')
     v2_program_key = get_key('devnet', 'program')

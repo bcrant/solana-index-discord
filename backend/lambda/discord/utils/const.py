@@ -1,5 +1,5 @@
 class SolanaTokens:
-    with open('./solana_tokens.txt', 'r') as txt:
+    with open('../../../scripts/solana_tokens.txt', 'r') as txt:
         tokens = list()
         for token in txt.read().splitlines():
             tokens.append(token.replace('\"', '').rstrip(','))
