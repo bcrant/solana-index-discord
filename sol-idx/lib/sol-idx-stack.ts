@@ -1,16 +1,73 @@
-import { Stack, StackProps } from 'aws-cdk-lib';
+import { Duration, Stack, StackProps } from 'aws-cdk-lib';
+import { LambdaIntegration, MethodLoggingLevel, RestApi } from 'aws-cdk-lib/aws-apigateway';
+import { Function, Runtime, AssetCode, Code } from 'aws-cdk-lib/aws-lambda';
+import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import s3 = require('aws-cdk-lib/aws-s3');
 import { Construct } from 'constructs';
-// import * as sqs from 'aws-cdk-lib/aws-sqs';
+
+interface LambdaApiStackProps extends StackProps {
+  functionName: string
+}
 
 export class SolIdxStack extends Stack {
-  constructor(scope: Construct, id: string, props?: StackProps) {
+  private restApi: RestApi
+  private lambdaFunction: Function
+  private bucket: s3.Bucket
+  
+  constructor(scope: Construct, id: string, props: LambdaApiStackProps) {
     super(scope, id, props);
 
-    // The code that defines your stack goes here
+    this.bucket = new s3.Bucket(this, "solana-index-discord-bucket")
+    
+    const restApiName: string = "solana-index-discord-api"
+    
+    this.restApi = new RestApi(this, restApiName, {
+      restApiName: restApiName,
+      deployOptions: {
+        stageName: "prod",
+        metricsEnabled: true,
+        loggingLevel: MethodLoggingLevel.ERROR,
+        dataTraceEnabled: false,
+      },
+    });
 
-    // example resource
-    // const queue = new sqs.Queue(this, 'SolIdxQueue', {
-    //   visibilityTimeout: cdk.Duration.seconds(300)
-    // });
+    const lambdaPolicy = new PolicyStatement()
+    lambdaPolicy.addActions("s3:ListBucket")
+    lambdaPolicy.addResources(this.bucket.bucketArn)
+
+    this.lambdaFunction = new Function(this, props.functionName, {
+      functionName: props.functionName,
+      code: new AssetCode("./lambda"),
+      runtime: Runtime.PYTHON_3_9,
+      handler: "index.handler",
+      timeout: Duration.seconds(20),
+      memorySize: 512,
+      environment: {
+        DISCORD_APP_NAME: process.env.DISCORD_APP_NAME as string,
+        DISCORD_APP_ID: process.env.DISCORD_APP_ID as string,
+        DISCORD_PUBLIC_KEY: process.env.DISCORD_PUBLIC_KEY as string,
+        DISCORD_SECRET: process.env.DISCORD_SECRET as string,
+        DISCORD_BOT_TOKEN: process.env.DISCORD_BOT_TOKEN as string,
+        DISCORD_BOT_PERMISSIONS: process.env.DISCORD_BOT_PERMISSIONS as string,
+      },
+      initialPolicy: [lambdaPolicy],
+    });
+
+    this.restApi.root.addMethod("GET", new LambdaIntegration(this.lambdaFunction, {}))
+
+    const apiKey = this.restApi.addApiKey("api-key", {
+      apiKeyName: "solana-index-discord-api-key",
+    });
+
+    const usagePlan = this.restApi.addUsagePlan("api-key-usage-plan", {
+      name: "solana-index-discord-api-usage-plan",
+      throttle: {
+        rateLimit: 10,
+        burstLimit: 2
+      },
+    });
+  
+    usagePlan.addApiKey(apiKey);
+    usagePlan.addApiStage({ stage: this.restApi.deploymentStage });
   }
 }
