@@ -1,5 +1,6 @@
 import json
 import os
+import pprint
 from utils.environment import init_env
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
@@ -20,6 +21,9 @@ def handler(event, context):
     """
     logger = init_env()
     logger.info('RUNNING LAMBDA FUNCTION... inputs: ')
+    logger.info(f'[EVENT]: {event}')
+    logger.info(f'[CONTEXT]: {context}')
+
     # verify the signature
     try:
         verify_signature(event)
@@ -50,6 +54,7 @@ def handler(event, context):
 
 
 def verify_signature(event):
+    pprint.pprint(vars(event))
     raw_body = event.get("rawBody")
     auth_sig = event['params']['header'].get('x-signature-ed25519')
     auth_ts = event['params']['header'].get('x-signature-timestamp')
