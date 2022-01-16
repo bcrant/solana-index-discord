@@ -1,0 +1,24 @@
+*.js
+!jest.config.js
+*.d.ts
+node_modules
+*.env*
+!.env.example
+
+# CDK asset staging directory
+.cdk.staging
+cdk.out
+
+# ignrore swap files and python run files
+**/__pycache__
+**/tmp
+*.pyc
+*.swp
+.idea
+.key
+.metadata/
+.idea/
+.vscode
+.python-version
+*.DS_Store
+data/*
