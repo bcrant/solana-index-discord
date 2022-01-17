@@ -5,6 +5,20 @@ import { PythonFunction } from '@aws-cdk/aws-lambda-python-alpha';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import s3 = require('aws-cdk-lib/aws-s3');
 import { Construct } from 'constructs';
+import path = require('path');
+import * as dotenv from 'dotenv';
+dotenv.config();
+
+console.log('PROCESS.ENV', process.env);
+
+process.env.DISCORD_APP_NAME
+process.env.DISCORD_APP_ID
+process.env.DISCORD_PUBLIC_KEY
+process.env.DISCORD_SECRET as string,
+DISCORD_BOT_TOKEN: process.env.DISCORD_BOT_TOKEN as string,
+DISCORD_BOT_PERMISSIONS: process.env.DISCORD_BOT_PERMISSIONS as string,
+
+
 
 interface LambdaApiStackProps extends StackProps {
   functionName: string
