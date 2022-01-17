@@ -33,24 +33,6 @@ export class SolIdxStack extends Stack {
     const lambdaPolicy = new PolicyStatement()
     lambdaPolicy.addActions("s3:ListBucket")
     lambdaPolicy.addResources(this.bucket.bucketArn)
-      
-    // this.lambdaFunction = new Function(this, props.functionName, {
-    //   functionName: props.functionName,
-    //   code: Code.fromAsset(path.join(__dirname, '../lambda')),
-    //   runtime: Runtime.PYTHON_3_9,
-    //   handler: "index.handler",
-    //   timeout: Duration.seconds(20),
-    //   memorySize: 512,
-    //   environment: {
-    //     DISCORD_APP_NAME: process.env.DISCORD_APP_NAME as string,
-    //     DISCORD_APP_ID: process.env.DISCORD_APP_ID as string,
-    //     DISCORD_PUBLIC_KEY: process.env.DISCORD_PUBLIC_KEY as string,
-    //     DISCORD_SECRET: process.env.DISCORD_SECRET as string,
-    //     DISCORD_BOT_TOKEN: process.env.DISCORD_BOT_TOKEN as string,
-    //     DISCORD_BOT_PERMISSIONS: process.env.DISCORD_BOT_PERMISSIONS as string,
-    //   },
-    //   initialPolicy: [lambdaPolicy],
-    // });
 
     this.lambdaFunction = new PythonFunction(this, props.functionName, {
       functionName: props.functionName,
@@ -65,6 +47,7 @@ export class SolIdxStack extends Stack {
         DISCORD_SECRET: process.env.DISCORD_SECRET as string,
         DISCORD_BOT_TOKEN: process.env.DISCORD_BOT_TOKEN as string,
         DISCORD_BOT_PERMISSIONS: process.env.DISCORD_BOT_PERMISSIONS as string,
+        DISCORD_GUILD_ID: process.env.DISCORD_GUILD_ID as string,
       },
       initialPolicy: [lambdaPolicy],
     })
