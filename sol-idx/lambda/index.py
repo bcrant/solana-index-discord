@@ -17,30 +17,34 @@ def handler(event, context):
     logger.info(f'[EVENT]: {event}')
     logger.info(f'[CONTEXT]: {context}')
 
-    # return {
-    #     'statusCode': 200,
-    #     'body': json.dumps({'type': 1})
-    # }
-
     PUBLIC_KEY = os.getenv('DISCORD_PUBLIC_KEY')
     verify_key = VerifyKey(bytes.fromhex(PUBLIC_KEY))
+    logger.info(f'Verify Key: {verify_key}')
 
     signature = event.get('signature')
+    logger.info(f'Signature: {signature}')
     timestamp = event.get('timestamp')
+    logger.info(f'Timestamp: {timestamp}')
     body = event.get('jsonBody')
+    logger.info(f'Body: {type(body)} {body}')
+
+    verify_payload = f'{timestamp}{body}'.encode()
+    logger.info(f'Verify Payload: {type(verify_payload)} {verify_payload}')
 
     try:
-        verify_key.verify(f'{timestamp}{body}'.encode(), bytes.fromhex(signature))
-        body_json = json.loads(body)
-        if body_json.get('type') == 1:
+        verify_result = verify_key.verify(verify_payload, bytes.fromhex(signature))
+        logger.info(f'Verify Result: {verify_result}')
+
+        if body.get('type') == 1:
             return {
                 'statusCode': 200,
                 'body': json.dumps({'type': 1})
             }
     except BadSignatureError as e:
+        logger.error(f'Bad Signature Error: {e}')
         return {
             'statusCode': 401,
-            'body': json.dumps("Bad Signature")
+            'body': json.dumps({'err': 'Bad Signature Error'})
         }
 
 
