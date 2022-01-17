@@ -1,6 +1,12 @@
 import { Construct } from 'constructs';
 import { Duration, Stack, StackProps } from 'aws-cdk-lib';
-import { LambdaIntegration, MethodLoggingLevel, RestApi } from 'aws-cdk-lib/aws-apigateway';
+import { 
+  Cors,
+  LambdaIntegration, 
+  MethodLoggingLevel, 
+  RequestValidator,
+  RestApi,
+} from 'aws-cdk-lib/aws-apigateway';
 import { Function, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { PythonFunction } from '@aws-cdk/aws-lambda-python-alpha';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
@@ -72,15 +78,67 @@ export class SolIdxStack extends Stack {
         loggingLevel: MethodLoggingLevel.INFO,
         dataTraceEnabled: true,
       },
+      defaultCorsPreflightOptions: {
+        allowOrigins: Cors.ALL_ORIGINS,
+      },
     });
 
-    const discord = this.restApi.root.addResource("discord");
-    discord.addMethod("GET", new LambdaIntegration(this.lambdaFunction, {}), {
-      apiKeyRequired: true,
-    }); 
+    const restApiValidator = new RequestValidator(this, restApiName + '-validator', {
+      restApi: this.restApi,
+      validateRequestBody: true,
+      validateRequestParameters: true,
+    });
 
-    const apiKey = this.restApi.addApiKey("api-key", {
-      apiKeyName: "solana-index-discord-api-key",
+    // const discord = this.restApi.root.addResource("discord");
+    // discord.addMethod("GET", new LambdaIntegration(this.lambdaFunction, {}), {
+    //   apiKeyRequired: true,
+    // }); 
+
+    // User authentication endpoint configuration
+    const discordBotEventItems = this.restApi.root.addResource("event", {
+      defaultCorsPreflightOptions: {
+        allowOrigins: [
+          "*",
+        ],
+      },
+    });
+
+    // Transform our requests and responses as appropriate.
+    const discordBotIntegration: LambdaIntegration = new LambdaIntegration(this.lambdaFunction, {
+      proxy: false,
+      requestTemplates: {
+        'application/json': '{\r\n\
+              "timestamp": "$input.params(\'x-signature-timestamp\')",\r\n\
+              "signature": "$input.params(\'x-signature-ed25519\')",\r\n\
+              "jsonBody" : $input.json(\'$\')\r\n\
+            }',
+      },
+      integrationResponses: [
+        {
+          statusCode: '200',
+        },
+        {
+          statusCode: '401',
+          selectionPattern: '.*[UNAUTHORIZED].*',
+          responseTemplates: {
+            'application/json': 'invalid request signature',
+          },
+        },
+      ],
+    });
+
+    // Add a POST method for the Discord APIs.
+    discordBotEventItems.addMethod('POST', discordBotIntegration, {
+      apiKeyRequired: false,
+      requestValidator: restApiValidator,
+      methodResponses: [
+        {
+          statusCode: '200',
+        },
+        {
+          statusCode: '401',
+        },
+      ],
     });
 
     const usagePlan = this.restApi.addUsagePlan("api-key-usage-plan", {
@@ -90,7 +148,11 @@ export class SolIdxStack extends Stack {
         burstLimit: 2
       },
     });
-  
+
+    const apiKey = this.restApi.addApiKey("api-key", {
+      apiKeyName: "solana-index-discord-api-key",
+    });
+
     usagePlan.addApiKey(apiKey);
     usagePlan.addApiStage({ stage: this.restApi.deploymentStage });
   }
