@@ -2,6 +2,7 @@ import { Construct } from 'constructs';
 import { Duration, Stack, StackProps } from 'aws-cdk-lib';
 import { 
   Cors,
+  ContentHandling,
   LambdaIntegration, 
   MethodLoggingLevel, 
   RequestValidator,
@@ -72,11 +73,6 @@ export class SolIdxStack extends Stack {
       validateRequestParameters: true,
     });
 
-    // const discord = this.restApi.root.addResource("discord");
-    // discord.addMethod("GET", new LambdaIntegration(this.lambdaFunction, {}), {
-    //   apiKeyRequired: true,
-    // }); 
-
     // User authentication endpoint configuration
     const discordBotEventItems = this.restApi.root.addResource("event", {
       defaultCorsPreflightOptions: {
@@ -86,28 +82,45 @@ export class SolIdxStack extends Stack {
       },
     });
 
+//     const velocityTemplate = String.raw`{
+//         "timestamp": $util.escapeJavaScript($input.params("x-signature-timestamp")),
+//         "signature": $util.escapeJavaScript($input.params("x-signature-ed25519")),
+//         "headers": $util.escapeJavaScript({
+//         #foreach($param in $input.params().header.keySet())
+//         $param: $util.escapeJavaScript($input.params().header.get($param))#if($foreach.hasNext),#end
+//         #end
+//         }),
+//         "rawBody": $util.escapeJavaScript($input.body)
+//     }`;
+
+    const velocityTemplate = String.raw`
+    {
+        "headers": {
+            #foreach($param in $input.params().header.keySet())
+            "$param": "$input.params().header.get($param)"#if($foreach.hasNext),#end
+            #end
+        }
+    }`;
+
+
     // Transform our requests and responses as appropriate.
     const discordBotIntegration: LambdaIntegration = new LambdaIntegration(this.lambdaFunction, {
-      proxy: false,
-      requestTemplates: {
-        'application/json': '{\r\n\
-              "timestamp": "$input.params(\'x-signature-timestamp\')",\r\n\
-              "signature": "$input.params(\'x-signature-ed25519\')",\r\n\
-              "jsonBody" : $input.json(\'$\')\r\n\
-            }',
-      },
-      integrationResponses: [
-        {
-          statusCode: '200',
+        proxy: false,
+        requestTemplates: {
+            'application/json': velocityTemplate
         },
-        {
-          statusCode: '401',
-          selectionPattern: '.*[UNAUTHORIZED].*',
-          responseTemplates: {
-            'application/json': 'invalid request signature',
-          },
-        },
-      ],
+        integrationResponses: [
+            {
+                statusCode: '200',
+            },
+            {
+                statusCode: '401',
+                selectionPattern: '.*[UNAUTHORIZED].*',
+                responseTemplates: {
+                    'application/json': 'invalid request signature',
+                },
+            },
+        ],
     });
 
     // Add a POST method for the Discord APIs.

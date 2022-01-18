@@ -21,19 +21,25 @@ def handler(event, context):
     PUBLIC_KEY = os.getenv('DISCORD_PUBLIC_KEY')
     verify_key = VerifyKey(bytes.fromhex(PUBLIC_KEY))
     logger.info(f'Verify Key: {verify_key}')
-    #
-    # headers = event.get('headers')
-    # logger.info(f'Headers: {headers}')
+
+    headers = event.get('headers')
+    logger.info(f'Headers: {headers}')
 
     signature = event.get('signature')
     logger.info(f'Signature: {signature}')
     timestamp = event.get('timestamp')
     logger.info(f'Timestamp: {timestamp}')
-    body = event.get('jsonBody')
-    logger.info(f'Body: {type(body)} {body}')
+    # body = event.get('jsonBody')
+    # logger.info(f'Body: {type(body)} {body}')
+
+    # signature = event.headers["X-Signature-Ed25519"]
+    # timestamp = event.headers["X-Signature-Timestamp"]
+    # body = event.get('data').decode("utf-8")
+    body = event.get('rawBody')
 
     verify_payload = f'{timestamp}{body}'.encode()
-    logger.info(f'Verify Payload: {type(verify_payload)} {verify_payload}')
+    logger.info(f'Verify Payload A: {type(verify_payload)} {verify_payload}')
+    logger.info(f'Verify Payload B: {type(bytes.fromhex(signature))} {bytes.fromhex(signature)}')
 
     try:
         verify_result = verify_key.verify(verify_payload, bytes.fromhex(signature))
@@ -41,7 +47,7 @@ def handler(event, context):
 
         if body.get('type') == 1:
             v = validate_response(body)
-            return logger.info(f'Validation Response: {v.content}')
+            return logger.info(f'Validation Response: {v}')
 
     except BadSignatureError as e:
         logger.error(f'Bad Signature Error: {e}')
