@@ -31,8 +31,8 @@ def handler(event, context):
     timestamp = event.get('timestamp')
     logger.info(f'Timestamp: {type(timestamp)} {timestamp}')
 
-    jsonBody = event.get('jsonBody')
-    logger.info(f'jsonBody: {type(jsonBody)} {jsonBody}')
+    # jsonBody = event.get('jsonBody')
+    # logger.info(f'jsonBody: {type(jsonBody)} {jsonBody}')
 
     rawBody = event.get('rawBody')
     logger.info(f'rawBody: {type(rawBody)} {rawBody}')
@@ -46,8 +46,8 @@ def handler(event, context):
         verify_result = verify_key.verify(verify_payload_a, verify_payload_b)
         logger.info(f'Verify Result: {verify_result}')
 
-        if jsonBody.get('type') == 1:
-            v = validate_response(jsonBody)
+        if rawBody.get('type') == 1:
+            v = validate_response(rawBody)
             logger.info(f'Ping Pong Validation Response: {v}')
             return logger.info('READY FOR ACTION')
 

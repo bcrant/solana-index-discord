@@ -73,15 +73,6 @@ export class SolIdxStack extends Stack {
       validateRequestParameters: true,
     });
 
-    // User authentication endpoint configuration
-    const discordBotEventItems = this.restApi.root.addResource("event", {
-      defaultCorsPreflightOptions: {
-        allowOrigins: [
-          "*",
-        ],
-      },
-    });
-
 //     const velocityTemplate = String.raw`{
 //         "timestamp": $util.escapeJavaScript($input.params("x-signature-timestamp")),
 //         "signature": $util.escapeJavaScript($input.params("x-signature-ed25519")),
@@ -92,19 +83,31 @@ export class SolIdxStack extends Stack {
 //         }),
 //         "rawBody": $util.escapeJavaScript($input.body)
 //     }`;
+// "jsonBody": "$util.escapeJavaScript($input.json("$"))",
 
-    const velocityTemplate = String.raw`
-    {
-        "headers": {
-            #foreach($param in $input.params().header.keySet())
-            "$param": "$util.escapeJavaScript($input.params().header.get($param))"#if($foreach.hasNext),#end
-            #end
-        },
-        "jsonBody": "$util.escapeJavaScript($input.json("$"))",
-        "rawBody": "$util.escapeJavaScript($input.body)",
-        "timestamp": $input.params("x-signature-timestamp"),
-        "signature": $input.params("x-signature-ed25519")
-    }`;
+// "headers": {
+//     #foreach($param in $input.params().header.keySet())
+//     "$param": "$util.escapeJavaScript($input.params().header.get($param))"#if($foreach.hasNext),#end
+//     #end
+// },
+
+//         "jsonBody": $input.json("$"),
+
+
+    // User authentication endpoint configuration
+    const discordBotEventItems = this.restApi.root.addResource("event", {
+      defaultCorsPreflightOptions: {
+        allowOrigins: [
+          "*",
+        ],
+      },
+    });
+
+    const velocityTemplate = '{' +
+      `"rawBody": "$input.body",` +
+      `"timestamp": "$input.params("x-signature-timestamp")",` +
+      `"signature": "$input.params("x-signature-ed25519")"` +
+    '}';
 
 
     // Transform our requests and responses as appropriate.
