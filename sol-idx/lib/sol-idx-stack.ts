@@ -104,29 +104,34 @@ export class SolIdxStack extends Stack {
     });
 
     const velocityTemplate = '{' +
-      `"rawBody": "$input.body",` +
+      `"headers": {
+          #foreach($param in $input.params().header.keySet())
+          "$param": "$util.escapeJavaScript($input.params().header.get($param))"#if($foreach.hasNext),#end
+          #end
+        },` +
+      `"jsonBody": "$util.escapeJavaScript($input.json("$"))",` +
+      `"rawBody": "$util.escapeJavaScript($input.body).replaceAll("\\'","'")",` +
       `"timestamp": "$input.params("x-signature-timestamp")",` +
       `"signature": "$input.params("x-signature-ed25519")"` +
     '}';
-
 
     // Transform our requests and responses as appropriate.
     const discordBotIntegration: LambdaIntegration = new LambdaIntegration(this.lambdaFunction, {
         proxy: false,
         requestTemplates: {
-            'application/json': velocityTemplate
+          'application/json': velocityTemplate
         },
         integrationResponses: [
-            {
-                statusCode: '200',
+          {
+            statusCode: '200',
+          },
+          {
+            statusCode: '401',
+            selectionPattern: '.*[UNAUTHORIZED].*',
+            responseTemplates: {
+              'application/json': 'invalid request signature',
             },
-            {
-                statusCode: '401',
-                selectionPattern: '.*[UNAUTHORIZED].*',
-                responseTemplates: {
-                    'application/json': 'invalid request signature',
-                },
-            },
+          },
         ],
     });
 
