@@ -73,27 +73,6 @@ export class SolIdxStack extends Stack {
       validateRequestParameters: true,
     });
 
-//     const velocityTemplate = String.raw`{
-//         "timestamp": $util.escapeJavaScript($input.params("x-signature-timestamp")),
-//         "signature": $util.escapeJavaScript($input.params("x-signature-ed25519")),
-//         "headers": $util.escapeJavaScript({
-//         #foreach($param in $input.params().header.keySet())
-//         $param: $util.escapeJavaScript($input.params().header.get($param))#if($foreach.hasNext),#end
-//         #end
-//         }),
-//         "rawBody": $util.escapeJavaScript($input.body)
-//     }`;
-// "jsonBody": "$util.escapeJavaScript($input.json("$"))",
-
-// "headers": {
-//     #foreach($param in $input.params().header.keySet())
-//     "$param": "$util.escapeJavaScript($input.params().header.get($param))"#if($foreach.hasNext),#end
-//     #end
-// },
-
-//         "jsonBody": $input.json("$"),
-
-
     // User authentication endpoint configuration
     const discordBotEventItems = this.restApi.root.addResource("event", {
       defaultCorsPreflightOptions: {
@@ -103,36 +82,43 @@ export class SolIdxStack extends Stack {
       },
     });
 
-    const velocityTemplate = '{' +
-      `"headers": {
-          #foreach($param in $input.params().header.keySet())
-          "$param": "$util.escapeJavaScript($input.params().header.get($param))"#if($foreach.hasNext),#end
-          #end
-        },` +
-      `"jsonBody": "$util.escapeJavaScript($input.json("$"))",` +
-      `"rawBody": "$util.escapeJavaScript($input.body).replaceAll("\\'","'")",` +
-      `"timestamp": "$input.params("x-signature-timestamp")",` +
-      `"signature": "$input.params("x-signature-ed25519")"` +
-    '}';
+    //
+    // Leaving this here because I spent an entire weekend figuring out... the wrong thing.
+    // Turns out, do not need to create a request template and manipulate the header & body.
+    // Should have set proxy: false and sent the raw request straight through to lambda.
+    // RIP Saturday, Sunday
+    //
+    // const velocityTemplate = '{' +
+    //   `"headers": {
+    //       #foreach($param in $input.params().header.keySet())
+    //       "$param": "$util.escapeJavaScript($input.params().header.get($param))"#if($foreach.hasNext),#end
+    //       #end
+    //     },` +
+    //   `"jsonBody": "$util.escapeJavaScript($input.json("$"))",` +
+    //   `"rawBody": "$util.escapeJavaScript($input.body).replaceAll("\\'","'")",` +
+    //   `"timestamp": "$input.params("x-signature-timestamp")",` +
+    //   `"signature": "$input.params("x-signature-ed25519")"` +
+    // '}';
 
     // Transform our requests and responses as appropriate.
     const discordBotIntegration: LambdaIntegration = new LambdaIntegration(this.lambdaFunction, {
-        proxy: false,
-        requestTemplates: {
-          'application/json': velocityTemplate
+      proxy: true,
+      // proxy: false,
+      // requestTemplates: {
+      //   'application/json': velocityTemplate
+      // },
+      integrationResponses: [
+        {
+          statusCode: '200',
         },
-        integrationResponses: [
-          {
-            statusCode: '200',
+        {
+          statusCode: '401',
+          selectionPattern: '.*[UNAUTHORIZED].*',
+          responseTemplates: {
+            'application/json': 'invalid request signature',
           },
-          {
-            statusCode: '401',
-            selectionPattern: '.*[UNAUTHORIZED].*',
-            responseTemplates: {
-              'application/json': 'invalid request signature',
-            },
-          },
-        ],
+        },
+      ],
     });
 
     // Add a POST method for the Discord APIs.

@@ -24,17 +24,14 @@ def handler(event, context):
 
     headers = event.get('headers')
     logger.info(f'Headers: {type(headers)} {headers}')
-
-    signature = event.get('signature')
+    
+    signature = headers.get('x-signature-ed25519')
     logger.info(f'Signature: {type(signature)} {signature}')
-
-    timestamp = event.get('timestamp')
+    
+    timestamp = headers.get('x-signature-timestamp')
     logger.info(f'Timestamp: {type(timestamp)} {timestamp}')
-
-    # jsonBody = event.get('jsonBody')
-    # logger.info(f'jsonBody: {type(jsonBody)} {jsonBody}')
-
-    rawBody = event.get('rawBody')
+        
+    rawBody = event.get('body')
     logger.info(f'rawBody: {type(rawBody)} {rawBody}')
 
     verify_payload_a = f'{timestamp}{rawBody}'.encode()
@@ -44,12 +41,17 @@ def handler(event, context):
 
     try:
         verify_result = verify_key.verify(verify_payload_a, verify_payload_b)
-        logger.info(f'Verify Result: {verify_result}')
+        logger.info(f'Verify Result: {bool(verify_result)} {type(verify_result)} {verify_result}')
 
-        if rawBody.get('type') == 1:
-            v = validate_response(rawBody)
+        jsonBody = json.loads(rawBody)
+        logger.info(f'jsonBody: {type(jsonBody)} {jsonBody}');
+        if jsonBody.get('type') == 1:
+            v = validate_response(jsonBody)
             logger.info(f'Ping Pong Validation Response: {v}')
-            return logger.info('READY FOR ACTION')
+            return {
+        'statusCode': 200,
+        'body': json.dumps({'type': 1})
+    }
 
     except BadSignatureError as e:
         logger.error(f'Bad Signature Error: {e}')
@@ -76,7 +78,7 @@ def validate_response(req_body):
 
     ping_pong_req = requests.post(ping_pong_url, json=ping_pong_payload)
 
-    return ping_pong_req
+    return json.loads(ping_pong_req.content)
 
 
 if os.getenv('AWS_EXECUTION_ENV') is None:
