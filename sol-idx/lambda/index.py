@@ -44,14 +44,14 @@ def handler(event, context):
         logger.info(f'Verify Result: {bool(verify_result)} {type(verify_result)} {verify_result}')
 
         jsonBody = json.loads(rawBody)
-        logger.info(f'jsonBody: {type(jsonBody)} {jsonBody}');
+        logger.info(f'jsonBody: {type(jsonBody)} {jsonBody}')
         if jsonBody.get('type') == 1:
             v = validate_response(jsonBody)
             logger.info(f'Ping Pong Validation Response: {v}')
             return {
-        'statusCode': 200,
-        'body': json.dumps({'type': 1})
-    }
+                'statusCode': 200,
+                'body': json.dumps({'type': 1})
+            }
 
     except BadSignatureError as e:
         logger.error(f'Bad Signature Error: {e}')
@@ -72,8 +72,13 @@ def validate_response(req_body):
         f'/callback'
 
     ping_pong_payload = {
-        'statusCode': 200,
-        'body': json.dumps({'type': 1})
+        "type": 4,
+        "data": {
+            "tts": False,
+            "content": "Congrats on sending your command!",
+            "embeds": [],
+            "allowed_mentions": {"parse": []}
+        }
     }
 
     ping_pong_req = requests.post(ping_pong_url, json=ping_pong_payload)
