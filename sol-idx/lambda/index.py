@@ -23,31 +23,33 @@ def handler(event, context):
     logger.info(f'Verify Key: {verify_key}')
 
     headers = event.get('headers')
-    logger.info(f'Headers: {headers}')
+    logger.info(f'Headers: {type(headers)} {headers}')
 
     signature = event.get('signature')
-    logger.info(f'Signature: {signature}')
+    logger.info(f'Signature: {type(signature)} {signature}')
+
     timestamp = event.get('timestamp')
-    logger.info(f'Timestamp: {timestamp}')
-    # body = event.get('jsonBody')
-    # logger.info(f'Body: {type(body)} {body}')
+    logger.info(f'Timestamp: {type(timestamp)} {timestamp}')
 
-    # signature = event.headers["X-Signature-Ed25519"]
-    # timestamp = event.headers["X-Signature-Timestamp"]
-    # body = event.get('data').decode("utf-8")
-    body = event.get('rawBody')
+    jsonBody = event.get('jsonBody')
+    logger.info(f'jsonBody: {type(jsonBody)} {jsonBody}')
 
-    verify_payload = f'{timestamp}{body}'.encode()
-    logger.info(f'Verify Payload A: {type(verify_payload)} {verify_payload}')
-    logger.info(f'Verify Payload B: {type(bytes.fromhex(signature))} {bytes.fromhex(signature)}')
+    rawBody = event.get('rawBody')
+    logger.info(f'rawBody: {type(rawBody)} {rawBody}')
+
+    verify_payload_a = f'{timestamp}{rawBody}'.encode()
+    verify_payload_b = bytes.fromhex(signature)
+    logger.info(f'Verify Payload A: {type(verify_payload_a)} {verify_payload_a}')
+    logger.info(f'Verify Payload B: {type(verify_payload_b)} {verify_payload_b}')
 
     try:
-        verify_result = verify_key.verify(verify_payload, bytes.fromhex(signature))
+        verify_result = verify_key.verify(verify_payload_a, verify_payload_b)
         logger.info(f'Verify Result: {verify_result}')
 
-        if body.get('type') == 1:
-            v = validate_response(body)
-            return logger.info(f'Validation Response: {v}')
+        if jsonBody.get('type') == 1:
+            v = validate_response(jsonBody)
+            logger.info(f'Ping Pong Validation Response: {v}')
+            return logger.info('READY FOR ACTION')
 
     except BadSignatureError as e:
         logger.error(f'Bad Signature Error: {e}')
@@ -62,21 +64,19 @@ def validate_response(req_body):
     interaction_id = req_body.get('id')
     interaction_token = req_body.get('token')
 
-    url = f'https://discord.com/api/v8/interactions' \
-          f'/{interaction_id}' \
-          f'/{interaction_token}' \
-          f'/callback'
-    # response = json.dumps({
-    #     'statusCode': 200,
-    #     'type': 1,
-    # })
-    response = {
+    ping_pong_url = f'https://discord.com/api/v8/interactions' \
+        f'/{interaction_id}' \
+        f'/{interaction_token}' \
+        f'/callback'
+
+    ping_pong_payload = {
         'statusCode': 200,
         'body': json.dumps({'type': 1})
     }
-    r = requests.post(url, json=response)
 
-    return r
+    ping_pong_req = requests.post(ping_pong_url, json=ping_pong_payload)
+
+    return ping_pong_req
 
 
 if os.getenv('AWS_EXECUTION_ENV') is None:

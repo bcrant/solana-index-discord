@@ -97,9 +97,13 @@ export class SolIdxStack extends Stack {
     {
         "headers": {
             #foreach($param in $input.params().header.keySet())
-            "$param": "$input.params().header.get($param)"#if($foreach.hasNext),#end
+            "$param": "$util.escapeJavaScript($input.params().header.get($param))"#if($foreach.hasNext),#end
             #end
-        }
+        },
+        "jsonBody": "$util.escapeJavaScript($input.json("$"))",
+        "rawBody": "$util.escapeJavaScript($input.body)",
+        "timestamp": $input.params("x-signature-timestamp"),
+        "signature": $input.params("x-signature-ed25519")
     }`;
 
 
