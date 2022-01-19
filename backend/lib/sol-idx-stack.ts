@@ -14,7 +14,7 @@ export class SolanaIndexStack extends cdk.Stack {
       // index: "", // will default to index.py but you can override that here
       // handler: "", // will default to handler but you can override that here
       runtime: lambda.Runtime.PYTHON_3_9,
-      timeout: cdk.Duration.seconds(60), // can update this to anything under 15 minutes
+      timeout: cdk.Duration.seconds(20), // can update this to anything under 15 minutes
       environment: {
         DISCORD_APP_NAME: process.env.DISCORD_APP_NAME as string,
         DISCORD_APP_ID: process.env.DISCORD_APP_ID as string,
@@ -34,8 +34,8 @@ export class SolanaIndexStack extends cdk.Stack {
 
     const discord = api.root.addResource("discord");
 
-    discord.addMethod("GET", new apigateway.LambdaIntegration(discordFn), {
-        apiKeyRequired: true,
+    discord.addMethod("POST", new apigateway.LambdaIntegration(discordFn), {
+      apiKeyRequired: true,
     });
 
     const apiKey = api.addApiKey("api-key", {
@@ -44,6 +44,10 @@ export class SolanaIndexStack extends cdk.Stack {
 
     const usagePlan = api.addUsagePlan("api-key-usage-plan", {
       name: "solana-index-api-usage-plan",
+      throttle: {
+        rateLimit: 10,
+        burstLimit: 2
+      },
     });
 
     usagePlan.addApiKey(apiKey);
