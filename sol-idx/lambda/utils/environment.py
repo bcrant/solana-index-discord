@@ -11,12 +11,12 @@ class PathTruncatingFormatter(logging.Formatter):
     def format(self, record):
         """Logging Formatter subclass to truncate the pathname to the two innermost directories."""
         if 'pathname' in record.__dict__.keys():
-            fullpath = record.pathname
-            pathparts = fullpath.split('/')
-            if len(pathparts) >= 2:
-                trunc_path = './{}/{}'.format(pathparts[-2], pathparts[-1])
+            full_path = record.pathname
+            path_parts = full_path.split('/')
+            if len(path_parts) >= 2:
+                trunc_path = './{}/{}'.format(path_parts[-2], path_parts[-1])
             else:
-                trunc_path = fullpath
+                trunc_path = full_path
             record.pathname = trunc_path
 
         return super(PathTruncatingFormatter, self).format(record)
@@ -44,6 +44,7 @@ def init_logger():
             '%(asctime)-26s [%(levelname)-5s] %(name)-25s %(pathname)s:%(lineno)s %(message)s'
     else:
         local_log_format = os.getenv('LOCAL_LOG_FORMAT')
+
     aws_log_format = '[%(levelname)s] %(name)-25s %(pathname)s:%(lineno)s %(message)s'
 
     log_level = logging.INFO
@@ -51,14 +52,18 @@ def init_logger():
     if os.getenv('AWS_EXECUTION_ENV') is None:
         # NOTE: Local Dev, this formatter will be respected
         new_format = local_log_format
-        logging.basicConfig(stream=sys.stdout,
-                            format=new_format,
-                            level=log_level)
+        logging.basicConfig(
+            stream=sys.stdout,
+            format=new_format,
+            level=log_level
+        )
     else:
         # NOTE: AWS has already mutated the logger, so we might want to adjust it.
         new_format = aws_log_format
-        logging.basicConfig(format=aws_log_format,
-                            level=log_level)
+        logging.basicConfig(
+            format=aws_log_format,
+            level=log_level
+        )
 
     for h in logging.root.handlers:
         h.setFormatter(PathTruncatingFormatter(new_format))

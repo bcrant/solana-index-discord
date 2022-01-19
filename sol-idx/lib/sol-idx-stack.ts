@@ -8,7 +8,7 @@ import {
   RequestValidator,
   RestApi,
 } from 'aws-cdk-lib/aws-apigateway';
-import { Function, Runtime } from 'aws-cdk-lib/aws-lambda';
+import { Runtime } from 'aws-cdk-lib/aws-lambda';
 import { PythonFunction } from '@aws-cdk/aws-lambda-python-alpha';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import s3 = require('aws-cdk-lib/aws-s3');
@@ -23,7 +23,7 @@ interface LambdaApiStackProps extends StackProps {
 
 export class SolIdxStack extends Stack {
   private restApi: RestApi
-  private lambdaFunction: Function
+  private lambdaFunction: PythonFunction
   private bucket: s3.Bucket
   
   constructor(scope: Construct, id: string, props: LambdaApiStackProps) {

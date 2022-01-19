@@ -3,8 +3,13 @@ import os
 import pprint
 import requests
 from dotenv import load_dotenv
-load_dotenv("../../.env", verbose=True)
+load_dotenv("../../../../.env", verbose=True)
 
+
+#
+# Discord > Slash Commands
+# A series of helper functions for quickly Listing, Registering, and Deleting application commands.
+#
 
 def register_discord_slash_command_global():
     # This is an example CHAT_INPUT or Slash Command, with a type of 1
@@ -130,7 +135,7 @@ if __name__ == '__main__':
     #
     # GLOBAL
     #
-    # list_discord_slash_commands_global()
+    list_discord_slash_commands_global()
     # register_discord_slash_command_global()
     # delete_discord_slash_command_global('932448201674461195')
 
