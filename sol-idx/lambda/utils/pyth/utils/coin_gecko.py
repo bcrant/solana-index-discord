@@ -64,8 +64,6 @@ def derive_index(data: list[tuple]):
     idx = dict()
     for tok in df['symbol'].tolist():
         idx.update(get_token_market_cap(tok, token_list))
-        # idx.update(get_token_historical_data(tok, token_list))
-
-    # pprint.pprint(idx)
+        idx.update(get_token_historical_data(tok, token_list))
 
     return idx

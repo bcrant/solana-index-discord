@@ -2,6 +2,7 @@ import json
 import os
 import requests
 import traceback
+from ..pyth.pyth import get_pyth_price_feed
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
 from dotenv import load_dotenv
@@ -80,10 +81,12 @@ def return_message_to_discord_interaction(req_body, logger):
                f'/callback'
     logger.info(f'Response URL: {resp_url}')
 
+    msg = get_pyth_price_feed()
+
     resp_json = {
         "type": 4,
         "data": {
-            "content": "Congrats on sending your command!",
+            "content": json.dumps(msg),
         }
     }
     logger.info(f'Response JSON: {resp_json}')

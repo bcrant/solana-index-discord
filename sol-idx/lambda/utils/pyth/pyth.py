@@ -3,11 +3,11 @@ from pythclient.pythaccounts import PythPriceAccount, PythPriceStatus
 from pythclient.pythclient import PythClient
 from pythclient.utils import get_key
 from utils.constants import SolanaTokens
-from utils.coin_gecko import derive_index
-from utils.helpers import get_iso_utc_timestamp_now, get_trends_df
+from utils.helpers import get_iso_utc_timestamp_now
+from utils.outputs import get_pyth_df
 
 
-async def main():
+async def get_pyth_price_feed():
     v2_first_mapping_account_key = get_key('devnet', 'mapping')
     v2_program_key = get_key('devnet', 'program')
     async with PythClient(
@@ -16,17 +16,19 @@ async def main():
     ) as c:
         await c.refresh_all_prices()
         solana_products = limit_to_solana_tokens(await c.get_products())
-        solana_products_prices = list()
+        solana_products_prices = dict()
         for sp in solana_products:
-            valid_prices = validate_price_status(await sp.get_prices())
+            # valid_prices = validate_price_status(await sp.get_prices())
+            # Skipping validation for now since devnet does not have as many producers...
+            valid_prices = format_price_records(await sp.get_prices())
             if valid_prices is not None:
-                solana_products_prices.append(valid_prices)
+                solana_products_prices[valid_prices[0]] = valid_prices[1]
 
-        idx = derive_index(solana_products_prices)
+        # df = get_pyth_df(solana_products_prices)
+        # print(df)
 
-        token_names: list = list(idx.keys())
-        trends_df = get_trends_df(token_names)
-        print(trends_df)
+        print(solana_products_prices)
+        return solana_products_prices
 
 
 def limit_to_solana_tokens(products_list):
@@ -57,5 +59,19 @@ def validate_price_status(prices: PythPriceAccount):
             ))
 
 
+def format_price_records(prices: PythPriceAccount):
+    for _, pr in prices.items():
+        # Columns: UTC DateTime, Symbol, Price
+        # return tuple((
+        #     get_iso_utc_timestamp_now(),
+        #     pr.product.symbol.lstrip('Crypto.').rstrip('/USD'),
+        #     pr.aggregate_price_info.price
+        # ))
+        return tuple((
+            pr.product.symbol.lstrip('Crypto.').rstrip('/USD'),
+            pr.aggregate_price_info.price
+        ))
+
+
 if __name__ == '__main__':
-    asyncio.run(main())
+    asyncio.run(get_pyth_price_feed())
