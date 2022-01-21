@@ -2,7 +2,7 @@ import json
 import os
 import requests
 import traceback
-from ..pyth.pyth import get_pyth_price_feed
+from utils.pyth.pyth import get_pyth_price_feed
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
 from dotenv import load_dotenv
