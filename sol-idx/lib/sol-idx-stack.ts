@@ -2,14 +2,17 @@ import { Construct } from 'constructs';
 import { Duration, Stack, StackProps } from 'aws-cdk-lib';
 import { 
   Cors,
-  ContentHandling,
   LambdaIntegration, 
   MethodLoggingLevel, 
   RequestValidator,
   RestApi,
 } from 'aws-cdk-lib/aws-apigateway';
-import { Runtime } from 'aws-cdk-lib/aws-lambda';
-import { PythonFunction } from '@aws-cdk/aws-lambda-python-alpha';
+import { 
+  Code,
+  Function,
+  LayerVersion,
+  Runtime 
+} from 'aws-cdk-lib/aws-lambda';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import s3 = require('aws-cdk-lib/aws-s3');
 
@@ -23,7 +26,7 @@ interface LambdaApiStackProps extends StackProps {
 
 export class SolIdxStack extends Stack {
   private restApi: RestApi
-  private lambdaFunction: PythonFunction
+  private lambdaFunction: Function
   private bucket: s3.Bucket
   
   constructor(scope: Construct, id: string, props: LambdaApiStackProps) {
@@ -35,9 +38,43 @@ export class SolIdxStack extends Stack {
     lambdaPolicy.addActions("s3:ListBucket")
     lambdaPolicy.addResources(this.bucket.bucketArn)
 
-    this.lambdaFunction = new PythonFunction(this, props.functionName, {
+    // //
+    // // Use this when Layer exists to save time building
+    // //
+    // const lambdaDepsLayer = LayerVersion.fromLayerVersionArn(
+    //   this, 
+    //   props.functionName + '-layer',
+    //   process.env.LAMBDA_LAYER_ARN as string
+    // )
+
+    //
+    // Use this when you need to rebuild the Lambda Layer
+    //
+    const lambdaDepsLayer = new LayerVersion(this, props.functionName + '-layer', {
+      code: Code.fromAsset('./lambda_layer', {
+        bundling: {
+          image: Runtime.PYTHON_3_9.bundlingImage,
+          command: [
+            'bash', '-c',
+            String.raw`
+              echo -e "[LOG] BUILDING DEPENDENCIES..." \
+                && pip install -r requirements.txt -t /asset-output/python \
+                && echo -e "[LOG] ZIPPING LAYER ARTIFACTS..." \
+                && cp -au . /asset-output/python 
+            `
+          ]
+        }
+      }),
+      compatibleRuntimes: [Runtime.PYTHON_3_9]
+    })
+
+    lambdaPolicy.addActions("lambda:GetLayerVersion")
+    lambdaPolicy.addResources(lambdaDepsLayer.layerVersionArn)  
+
+    this.lambdaFunction = new Function(this, props.functionName, {
+      code: Code.fromAsset('./lambda'),
       functionName: props.functionName,
-      entry: './lambda',
+      handler: 'index.handler',
       runtime: Runtime.PYTHON_3_9,
       timeout: Duration.seconds(20),
       memorySize: 512,
@@ -51,6 +88,7 @@ export class SolIdxStack extends Stack {
         DISCORD_GUILD_ID: process.env.DISCORD_GUILD_ID as string,
       },
       initialPolicy: [lambdaPolicy],
+      layers: [lambdaDepsLayer],
     })
 
     const restApiName: string = "solana-index-discord-api"    

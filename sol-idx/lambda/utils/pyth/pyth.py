@@ -1,10 +1,13 @@
 import asyncio
+from pythclient.exceptions import SolanaException
 from pythclient.pythaccounts import PythPriceAccount, PythPriceStatus
 from pythclient.pythclient import PythClient
+from pythclient.ratelimit import RateLimit
 from pythclient.utils import get_key
-from utils.constants import SolanaTokens
-from utils.helpers import get_iso_utc_timestamp_now
-from utils.outputs import get_pyth_df
+from utils.pyth.lib.constants import SolanaTokens
+from utils.pyth.lib.helpers import get_iso_utc_timestamp_now
+
+RateLimit.configure_default_ratelimit(overall_cps=9, method_cps=3, connection_cps=3)
 
 
 async def get_pyth_price_feed():
@@ -71,6 +74,31 @@ def format_price_records(prices: PythPriceAccount):
             pr.product.symbol.lstrip('Crypto.').rstrip('/USD'),
             pr.aggregate_price_info.price
         ))
+
+
+def get_pyth_discord_response(logger):
+    msg = None
+    
+    try:
+        msg_content = asyncio.run(get_pyth_price_feed())
+        msg = json.dumps(msg_contet)
+        logger.info(f'Pyth Price Feed Message: {type(msg)} {msg}')
+
+    except SolanaException as s_err:
+        logger.error(f'Solana Exception: {s_err}')
+        msg = 'Im a little teapot'
+   
+    resp_json = {
+        "statusCode": 200,
+        "type": 4,
+        "data": {
+            "tts": False,
+            "content": msg,
+            "type": 4,
+        }    
+    }
+
+    return resp_json
 
 
 if __name__ == '__main__':
