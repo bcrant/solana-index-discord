@@ -86,7 +86,7 @@ def return_message_to_discord_interaction(req_body, logger):
     resp_json = {
         "type": 4,
         "data": {
-            "content": json.dumps(msg),
+            "content": msg,
         }
     }
     logger.info(f'Response JSON: {resp_json}')

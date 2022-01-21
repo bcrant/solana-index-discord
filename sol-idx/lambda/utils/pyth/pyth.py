@@ -4,7 +4,6 @@ from pythclient.pythclient import PythClient
 from pythclient.utils import get_key
 from utils.pyth.lib.constants import SolanaTokens
 from utils.pyth.lib.helpers import get_iso_utc_timestamp_now
-from utils.pyth.lib.outputs import get_pyth_df
 
 
 async def get_pyth_price_feed():
