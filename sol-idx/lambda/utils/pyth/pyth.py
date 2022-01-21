@@ -1,16 +1,16 @@
 import asyncio
-import pandas as pd
+from pythclient.exceptions import SolanaException
+from pythclient.pythaccounts import PythPriceAccount, PythPriceStatus
 from pythclient.pythclient import PythClient
+from pythclient.ratelimit import RateLimit
 from pythclient.utils import get_key
-from helpers import \
-    derive_index, \
-    get_unix_timestamps, \
-    limit_to_solana_tokens, \
-    validate_price_status
-pd.set_option('display.max_columns', 500)
+from utils.pyth.lib.constants import SolanaTokens
+from utils.pyth.lib.helpers import get_iso_utc_timestamp_now
+
+RateLimit.configure_default_ratelimit(overall_cps=9, method_cps=3, connection_cps=3)
 
 
-async def main():
+async def get_pyth_price_feed():
     v2_first_mapping_account_key = get_key('devnet', 'mapping')
     v2_program_key = get_key('devnet', 'program')
     async with PythClient(
@@ -19,18 +19,87 @@ async def main():
     ) as c:
         await c.refresh_all_prices()
         solana_products = limit_to_solana_tokens(await c.get_products())
-        solana_products_prices = list()
+        solana_products_prices = dict()
         for sp in solana_products:
-            valid_prices = validate_price_status(await sp.get_prices())
+            # valid_prices = validate_price_status(await sp.get_prices())
+            # Skipping validation for now since devnet does not have as many producers...
+            valid_prices = format_price_records(await sp.get_prices())
             if valid_prices is not None:
-                solana_products_prices.append(valid_prices)
+                solana_products_prices[valid_prices[0]] = valid_prices[1]
 
-        idx = derive_index(solana_products_prices)
-        #
-        # token_names: list = list(idx.keys())
-        # trends_df = get_trends_df(token_names)
-        # print(trends_df)
-        get_unix_timestamps()
+        # df = get_pyth_df(solana_products_prices)
+        # print(df)
+
+        print(solana_products_prices)
+        return solana_products_prices
+
+
+def limit_to_solana_tokens(products_list):
+    return list(
+        cp
+        for cp in products_list
+        if cp.attrs.get('asset_type') == 'Crypto'
+        and cp.attrs.get('base') in SolanaTokens.TOP_20
+    )
+
+
+def validate_price_status(prices: PythPriceAccount):
+    for _, pr in prices.items():
+        valid_count = 0
+        invalid_count = 0
+        for pc in pr.price_components:
+            if pc.latest_price_info.price_status == PythPriceStatus.TRADING:
+                valid_count += 1
+            else:
+                invalid_count += 1
+
+        if valid_count >= 3:
+            # Columns: UTC DateTime, Symbol, Price
+            return tuple((
+                get_iso_utc_timestamp_now(),
+                pr.product.symbol.lstrip('Crypto.').rstrip('/USD'),
+                pr.aggregate_price_info.price
+            ))
+
+
+def format_price_records(prices: PythPriceAccount):
+    for _, pr in prices.items():
+        # Columns: UTC DateTime, Symbol, Price
+        # return tuple((
+        #     get_iso_utc_timestamp_now(),
+        #     pr.product.symbol.lstrip('Crypto.').rstrip('/USD'),
+        #     pr.aggregate_price_info.price
+        # ))
+        return tuple((
+            pr.product.symbol.lstrip('Crypto.').rstrip('/USD'),
+            pr.aggregate_price_info.price
+        ))
+
+
+def get_pyth_discord_response(logger):
+    msg = None
+    
+    try:
+        msg_content = asyncio.run(get_pyth_price_feed())
+        msg = json.dumps(msg_contet)
+        logger.info(f'Pyth Price Feed Message: {type(msg)} {msg}')
+
+    except SolanaException as s_err:
+        logger.error(f'Solana Exception: {s_err}')
+        msg = 'Im a little teapot'
+   
+    resp_json = {
+        "statusCode": 200,
+        "type": 4,
+        "data": {
+            "tts": False,
+            "content": msg,
+            "type": 4,
+        }    
+    }
+
+    return resp_json
+
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    asyncio.run(get_pyth_price_feed())
