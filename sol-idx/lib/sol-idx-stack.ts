@@ -38,35 +38,35 @@ export class SolIdxStack extends Stack {
     lambdaPolicy.addActions("s3:ListBucket")
     lambdaPolicy.addResources(this.bucket.bucketArn)
 
-    //
-    // Use this when Layer exists to save time building
-    //
-    const lambdaDepsLayer = LayerVersion.fromLayerVersionArn(
-      this, 
-      props.functionName + '-layer',
-      process.env.LAMBDA_LAYER_ARN as string
-    )
+    // //
+    // // Use this when Layer exists to save time building
+    // //
+    // const lambdaDepsLayer = LayerVersion.fromLayerVersionArn(
+    //   this, 
+    //   props.functionName + '-layer',
+    //   process.env.LAMBDA_LAYER_ARN as string
+    // )
 
     //
     // Use this when you need to rebuild the Lambda Layer
     //
-    // const lambdaDepsLayer = new LayerVersion(this, props.functionName + '-layer', {
-    //   code: Code.fromAsset('./lambda_layer', {
-    //     bundling: {
-    //       image: Runtime.PYTHON_3_9.bundlingImage,
-    //       command: [
-    //         'bash', '-c',
-    //         String.raw`
-    //           echo -e "[LOG] BUILDING DEPENDENCIES..." \
-    //             && pip install -r requirements.txt -t /asset-output/python \
-    //             && echo -e "[LOG] ZIPPING LAYER ARTIFACTS..." \
-    //             && cp -au . /asset-output/python 
-    //         `
-    //       ]
-    //     }
-    //   }),
-    //   compatibleRuntimes: [Runtime.PYTHON_3_9]
-    // })
+    const lambdaDepsLayer = new LayerVersion(this, props.functionName + '-layer', {
+      code: Code.fromAsset('./lambda_layer', {
+        bundling: {
+          image: Runtime.PYTHON_3_9.bundlingImage,
+          command: [
+            'bash', '-c',
+            String.raw`
+              echo -e "[LOG] BUILDING DEPENDENCIES..." \
+                && pip install -r requirements.txt -t /asset-output/python \
+                && echo -e "[LOG] ZIPPING LAYER ARTIFACTS..." \
+                && cp -au . /asset-output/python 
+            `
+          ]
+        }
+      }),
+      compatibleRuntimes: [Runtime.PYTHON_3_9]
+    })
 
     lambdaPolicy.addActions("lambda:GetLayerVersion")
     lambdaPolicy.addResources(lambdaDepsLayer.layerVersionArn)  

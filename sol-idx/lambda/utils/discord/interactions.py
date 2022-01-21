@@ -2,7 +2,7 @@ import json
 import os
 import requests
 import traceback
-from utils.pyth.pyth import get_pyth_price_feed
+from utils.pyth.pyth import get_pyth_discord_response
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
 from dotenv import load_dotenv
@@ -11,34 +11,34 @@ load_dotenv('../../../../.env', verbose=True)
 
 def validate_discord_interaction(lambda_event, logger):
     headers = lambda_event.get('headers')
-    logger.info(f'Headers: {type(headers)} {headers}')
+    # logger.info(f'Headers: {type(headers)} {headers}')
 
     signature = headers.get('x-signature-ed25519')
-    logger.info(f'Signature: {type(signature)} {signature}')
+    # logger.info(f'Signature: {type(signature)} {signature}')
 
     timestamp = headers.get('x-signature-timestamp')
-    logger.info(f'Timestamp: {type(timestamp)} {timestamp}')
+    # logger.info(f'Timestamp: {type(timestamp)} {timestamp}')
 
     raw_body = lambda_event.get('body')
-    logger.info(f'Raw Body: {type(raw_body)} {raw_body}')
+    # logger.info(f'Raw Body: {type(raw_body)} {raw_body}')
 
     json_body = json.loads(raw_body)
-    logger.info(f'JSON Body: {type(json_body)} {json_body}')
+    # logger.info(f'JSON Body: {type(json_body)} {json_body}')
 
     try:
         logger.info("Verifying that payloads match signature...")
         PUBLIC_KEY = os.getenv('DISCORD_PUBLIC_KEY')
         verify_key = VerifyKey(bytes.fromhex(PUBLIC_KEY))
-        logger.info(f'Verify Key: {verify_key}')
+        # logger.info(f'Verify Key: {verify_key}')
 
         verify_payload_a = f'{timestamp}{raw_body}'.encode()
-        logger.info(f'Verify Payload A: {type(verify_payload_a)} {verify_payload_a}')
+        # logger.info(f'Verify Payload A: {type(verify_payload_a)} {verify_payload_a}')
 
         verify_payload_b = bytes.fromhex(signature)
-        logger.info(f'Verify Payload B: {type(verify_payload_b)} {verify_payload_b}')
+        # logger.info(f'Verify Payload B: {type(verify_payload_b)} {verify_payload_b}')
 
         is_verified = verify_key.verify(verify_payload_a, verify_payload_b)
-        logger.info(f'Verification Result: {bool(is_verified)} {type(is_verified)} {is_verified}')
+        # logger.info(f'Verification Result: {bool(is_verified)} {type(is_verified)} {is_verified}')
 
         if bool(is_verified):
             respond_to_discord_interaction(json_body, logger)
@@ -76,25 +76,29 @@ def return_message_to_discord_interaction(req_body, logger):
     interaction_token = req_body.get('token')
 
     resp_url = f'https://discord.com/api/v8/interactions' \
-               f'/{interaction_id}' \
-               f'/{interaction_token}' \
-               f'/callback'
+              f'/{interaction_id}' \
+              f'/{interaction_token}' \
+              f'/callback'
     logger.info(f'Response URL: {resp_url}')
 
-    msg = get_pyth_price_feed()
+    msg = get_pyth_discord_response()
+    logger.info(f'Pyth Price Feed Message: {type(msg)} {msg}')
 
     resp_json = {
+        "statusCode": 200,
         "type": 4,
         "data": {
+            "tts": False,
             "content": msg,
-        }
+            "type": 4,
+        }    
     }
+    
     logger.info(f'Response JSON: {resp_json}')
 
     interaction_response = requests.post(resp_url, json=resp_json)
     logger.info(f'Interaction Response: {interaction_response}')
+    logger.info(f'Interaction Response: {interaction_response.content}')
 
-    return {
-        'statusCode': 200,
-        'body': json.dumps({'type': 1})
-    }
+
+    return resp_json
