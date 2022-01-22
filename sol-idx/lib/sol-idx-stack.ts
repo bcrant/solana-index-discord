@@ -176,8 +176,8 @@ export class SolIdxStack extends Stack {
     const usagePlan = this.restApi.addUsagePlan("api-key-usage-plan", {
       name: "solana-index-discord-api-usage-plan",
       throttle: {
-        rateLimit: 10,
-        burstLimit: 2
+        rateLimit: 20,
+        burstLimit: 10
       },
     });
 

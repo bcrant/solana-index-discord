@@ -66,6 +66,7 @@ def respond_to_discord_interaction(req_body, logger):
 def respond_to_type_one(logger):
     logger.info('Response "type" == 1. Returning Ping with Pong...')
     return {
+        'isBase64Encoded': False,
         'statusCode': 200,
         'body': json.dumps({'type': 1})
     }
@@ -74,13 +75,23 @@ def respond_to_type_one(logger):
 def respond_to_type_two(req_body, logger):
     logger.info('Response "type" == 2. Returning message...')
     url = get_interaction_response_url(req_body, logger)
-    resp_json = get_interaction_response_json_pyth(logger)
-    # resp_json = get_interaction_response_json_markdown(logger)
+    msg_content = get_interaction_response_msg_pyth(logger)
+    # msg_content = get_interaction_response_msg_markdown(logger)
 
     interaction_response = requests.post(url, json=resp_json)
     logger.info(f'Interaction Response: {interaction_response}')
     logger.info(f'Interaction Response: {interaction_response.content}')
-    return resp_json
+    return {
+        'isBase64Encoded': False,
+        'statusCode': 200,
+        'body': json.dumps({
+            'type': 4,
+            'data': {
+                'tts': False,
+                'content': msg_content,
+            }
+        })
+    }
 
 
 def get_interaction_response_url(req_body, logger):
@@ -95,23 +106,23 @@ def get_interaction_response_url(req_body, logger):
     return resp_url
 
 
-def get_interaction_response_json_pyth(logger):
+def get_interaction_response_msg_pyth(logger):
     logger.info('Responding to Discord Interaction with Pyth price feed...')
-    resp_json = get_pyth_discord_response(logger)
-    logger.info(f'Response JSON: {resp_json}')
-    return resp_json
+    resp_msg = get_pyth_discord_response(logger)
+    logger.info(f'Response Message: {resp_msg}')
+    return resp_msg
 
 
-def get_interaction_response_json_markdown(logger):
+def get_interaction_response_msg_markdown(logger):
     logger.info('Responding to Discord Interaction with a simple message...')
-    msg = ':fire: Im a little teapot'
-    resp_json = {
-        "statusCode": 200,
-        "type": 4,
-        "data": {
-            "tts": False,
-            "content": msg,
-        }
-    }
-    logger.info(f'Response JSON: {resp_json}')
-    return resp_json
+    resp_msg = ':fire: Im a little teapot'
+    # resp_json = {
+    #     "statusCode": 200,
+    #     "type": 4,
+    #     "data": {
+    #         "tts": False,
+    #         "content": msg,
+    #     }
+    # }
+    logger.info(f'Response Message: {resp_msg}')
+    return resp_msg

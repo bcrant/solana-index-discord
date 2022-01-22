@@ -45,7 +45,7 @@ def limit_to_solana_tokens(products_list):
 
 
 def validate_price_status(prices: PythPriceAccount):
-    for _, pr in prices.items():
+    for _, pr in {**prices}.items():
         valid_count = 0
         invalid_count = 0
         for pc in pr.price_components:
@@ -64,7 +64,7 @@ def validate_price_status(prices: PythPriceAccount):
 
 
 def format_price_records(prices: PythPriceAccount):
-    for _, pr in prices.items():
+    for _, pr in {**prices}.items():
         # Columns: UTC DateTime, Symbol, Price
         # return tuple((
         #     get_iso_utc_timestamp_now(),
@@ -78,27 +78,16 @@ def format_price_records(prices: PythPriceAccount):
 
 
 def get_pyth_discord_response(logger):
-    msg = None
-    
     try:
         msg_content = asyncio.run(get_pyth_price_feed())
         msg = json.dumps(msg_content)
         logger.info(f'Pyth Price Feed Message: {type(msg)} {msg}')
+        return msg
 
     except SolanaException as s_err:
-        logger.error(f'Solana Exception: {s_err}')
-        msg = 'Im a little teapot'
-   
-    resp_json = {
-        "statusCode": 200,
-        "type": 4,
-        "data": {
-            "tts": False,
-            "content": msg,
-        }    
-    }
-    logger.info(f'Response JSON: {resp_json}')
-    return resp_json
+        msg = f'Solana Exception: {s_err}'
+        logger.error(msg)
+        return msg
 
 
 if __name__ == '__main__':
