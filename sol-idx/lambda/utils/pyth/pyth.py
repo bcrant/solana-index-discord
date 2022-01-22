@@ -1,3 +1,4 @@
+import json
 import asyncio
 from pythclient.exceptions import SolanaException
 from pythclient.pythaccounts import PythPriceAccount, PythPriceStatus
@@ -81,7 +82,7 @@ def get_pyth_discord_response(logger):
     
     try:
         msg_content = asyncio.run(get_pyth_price_feed())
-        msg = json.dumps(msg_contet)
+        msg = json.dumps(msg_content)
         logger.info(f'Pyth Price Feed Message: {type(msg)} {msg}')
 
     except SolanaException as s_err:
@@ -94,10 +95,9 @@ def get_pyth_discord_response(logger):
         "data": {
             "tts": False,
             "content": msg,
-            "type": 4,
         }    
     }
-
+    logger.info(f'Response JSON: {resp_json}')
     return resp_json
 
 
