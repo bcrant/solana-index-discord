@@ -12,121 +12,140 @@ load_dotenv('../../../../.env', verbose=True)
 def respond_to_discord_interaction(lambda_event, logger):
     logger.info('Responding to Discord Interaction...')
 
-    req_body = json.loads(lambda_event.get('body'))
-    logger.info(f'Request body: {type(req_body)} {req_body}')
+    logger.info('Validating Discord Interaction....')
+    validate_discord_interaction(lambda_event, logger)
 
-    if req_body is not None:
-        interaction_type = req_body.get('type')
-        if interaction_type == 1:
-            respond_to_type_one(lambda_event, logger)
-        if interaction_type == 2:
-            respond_to_type_two(req_body, logger)
-    else:
-        logger.error(f'Lambda Event has no body or dot get did not work: {lambda_event}')
+    req_body = json.loads(lambda_event.get('body'))
+    logger.debug(f'Request body: {type(req_body)} {req_body}')
+
+    interaction_type = req_body.get('type')
+    if interaction_type == 1:
+        respond_to_type_one(logger)
+    if interaction_type == 2:
+        # respond_to_type_two_sync(req_body, logger)
+        respond_to_type_two_deferred(req_body, logger)
 
 
 def validate_discord_interaction(lambda_event, logger):
     headers = lambda_event.get('headers')
-    # logger.info(f'Headers: {type(headers)} {headers}')
+    logger.debug(f'Headers: {type(headers)} {headers}')
 
     signature = headers.get('x-signature-ed25519')
-    # logger.info(f'Signature: {type(signature)} {signature}')
+    logger.debug(f'Signature: {type(signature)} {signature}')
 
     timestamp = headers.get('x-signature-timestamp')
-    # logger.info(f'Timestamp: {type(timestamp)} {timestamp}')
+    logger.debug(f'Timestamp: {type(timestamp)} {timestamp}')
 
     raw_body = lambda_event.get('body')
-    # logger.info(f'Raw Body: {type(raw_body)} {raw_body}')
+    logger.debug(f'Raw Body: {type(raw_body)} {raw_body}')
 
     try:
-        logger.info("Verifying that payloads match signature...")
+        logger.debug("Verifying that payloads match signature...")
         PUBLIC_KEY = os.getenv('DISCORD_PUBLIC_KEY')
+        logger.debug(f'PUBLIC KEY: {PUBLIC_KEY}')
         verify_key = VerifyKey(bytes.fromhex(PUBLIC_KEY))
-        # logger.info(f'Verify Key: {verify_key}')
+        logger.debug(f'Verify Key: {verify_key}')
 
         verify_payload_a = f'{timestamp}{raw_body}'.encode()
-        # logger.info(f'Verify Payload A: {type(verify_payload_a)} {verify_payload_a}')
+        logger.debug(f'Verify Payload A: {type(verify_payload_a)} {verify_payload_a}')
 
         verify_payload_b = bytes.fromhex(signature)
-        # logger.info(f'Verify Payload B: {type(verify_payload_b)} {verify_payload_b}')
+        logger.debug(f'Verify Payload B: {type(verify_payload_b)} {verify_payload_b}')
 
-        is_verified = verify_key.verify(verify_payload_a, verify_payload_b)
-        logger.info(f'Verification Result: {bool(is_verified)}')
-
-        if bool(is_verified):
-            return {
-                'isBase64Encoded': False,
-                'statusCode': 200,
-                'body': json.dumps({'type': 1})
-            }
-        else:
-            logger.error(f'Problem validating Discord Interaction.')
+        verify_key.verify(verify_payload_a, verify_payload_b)
 
     except BadSignatureError as e:
         logger.error(f'Bad Signature Error: {e}')
         return {
+            'isBase64Encoded': False,
             'statusCode': 401,
-            'body': json.dumps({'err': 'Bad Signature Error'})
+            'body': json.dumps({'error': 'Bad Signature Error'})
         }
 
     except BaseException as err:
         logger.error(f'{traceback.format_exc()} {err}')
+        raise err
 
 
-def respond_to_type_one(lambda_event, logger):
-    logger.info('Response "type" == 1. Validating Discord Interaction....')
-    validate_discord_interaction(lambda_event, logger)
+def respond_to_type_one(logger):
+    logger.info('Response "type" == 1. Returning Ping Pong....')
+    return {
+        'isBase64Encoded': True,
+        'statusCode': 200,
+        'body': json.dumps({'type': 1})
+    }
 
 
-def respond_to_type_two(req_body, logger):
-    logger.info('Response "type" == 2. Returning message...')
-    url = get_interaction_response_url(req_body, logger)
-    # msg_content = get_interaction_response_msg_pyth(logger)
-    # msg_content = get_interaction_response_msg_markdown(logger)
-    # url = get_webhook_post_interaction_url(req_body, logger)
-
-    # resp_json = {
-    #     'statusCode': 200,
-    #     'type': 4,
-    #     'data': {
-    #         'content': json.dumps(msg_content),
-    #     }
-    # }
-
-    resp_json = {
+def respond_to_type_two_deferred(req_body, logger):
+    #
+    # POST | DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE
+    #
+    logger.info('Response "type" == 2. Deferring Channel Message...')
+    defer_url = get_interaction_response_url(req_body, logger)
+    defer_json = {
         'statusCode': 200,
         'type': 5,
     }
+    defer_response = requests.post(
+        defer_url,
+        json=defer_json,
+        headers={'Content-Type': 'application/json'}
+    )
+    logger.info(f'Interaction Response (Defer): {defer_response}')
+    logger.info(f'Interaction Response (Defer): {defer_response.content}')
 
     #
-    # POST
+    # PATCH | Edit Initial Response to Interaction
     #
-    interaction_response = requests.post(url, json=resp_json)
-    logger.info(f'Interaction Response: {interaction_response}')
-    logger.info(f'Interaction Response: {interaction_response.content}')
-
-    #
-    # PATCH
-    #
+    logger.info('Sending Deferred Channel Message...')
     hook_url = get_interaction_webhook_url(req_body, logger)
     hook_msg = get_interaction_response_msg_pyth(logger)
     hook_json = {
         'type': 3,
         'content': json.dumps(hook_msg)
     }
-    webhook_interaction_response = requests.patch(
+    hook_response = requests.patch(
         hook_url,
-        headers={'content-type': 'application/json'},
-        json=hook_json
+        json=hook_json,
+        headers={'Content-Type': 'application/json'}
     )
-    logger.info(f'Webhook Interaction Response: {webhook_interaction_response}')
-    logger.info(f'Webhook Interaction Response: {webhook_interaction_response.content}')
+    logger.info(f'Interaction Response (Edit Initial Response): {hook_response}')
+    logger.info(f'Interaction Response (Edit Initial Response): {hook_response.content}')
+
+    logger.info(f'Finished responding to Discord Interaction...')
+    logger.info(f'Returning 200 to API Gateway...')
+    return {
+        'isBase64Encoded': False,
+        'statusCode': 200,
+    }
+
+
+def respond_to_type_two_sync(req_body, logger):
+    logger.info('Response "type" == 2. Returning message...')
+    url = get_interaction_response_url(req_body, logger)
+    msg_content = get_interaction_response_msg_pyth(logger)
+    # msg_content = get_interaction_response_msg_markdown(logger)
+    resp_json = {
+        'statusCode': 200,
+        'type': 4,
+        'data': {
+            'content': json.dumps(msg_content),
+        }
+    }
+    interaction_response = requests.post(
+        url,
+        json=resp_json,
+        headers={'Content-Type': 'application/json'}
+    )
+    logger.info(f'Interaction Response: {interaction_response}')
+    logger.info(f'Interaction Response: {interaction_response.content}')
 
     logger.info(f'Finished responding to Discord Interaction...')
     logger.info(f'Returning to 200 Api Gateway...')
     return {
         'isBase64Encoded': False,
         'statusCode': 200,
+        'body': json.dumps({'type': 1})
     }
 
 
@@ -167,4 +186,3 @@ def get_interaction_webhook_url(req_body, logger):
 
     logger.info(f'Response URL: {resp_url}')
     return resp_url
-

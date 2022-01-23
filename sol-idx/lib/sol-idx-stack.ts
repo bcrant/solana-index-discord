@@ -1,6 +1,7 @@
 import { Construct } from 'constructs';
 import { Duration, Stack, StackProps } from 'aws-cdk-lib';
-import { 
+import {
+  ContentHandling,
   Cors,
   LambdaIntegration, 
   MethodLoggingLevel, 
@@ -151,10 +152,11 @@ export class SolIdxStack extends Stack {
         },
         {
           statusCode: '401',
-          selectionPattern: '.*[UNAUTHORIZED].*',
-          responseTemplates: {
-            'application/json': 'invalid request signature',
-          },
+//           contentHandling: ContentHandling.CONVERT_TO_BINARY,
+//           selectionPattern: '.*[UNAUTHORIZED].*',
+//           responseTemplates: {
+//             'application/json': 'invalid request signature',
+//           },
         },
       ],
     });

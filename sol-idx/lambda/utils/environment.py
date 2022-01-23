@@ -47,7 +47,7 @@ def init_logger():
 
     aws_log_format = '[%(levelname)s] %(name)-25s %(pathname)s:%(lineno)s %(message)s'
 
-    log_level = logging.INFO
+    log_level = logging.DEBUG
 
     if os.getenv('AWS_EXECUTION_ENV') is None:
         # NOTE: Local Dev, this formatter will be respected
@@ -69,14 +69,14 @@ def init_logger():
         h.setFormatter(PathTruncatingFormatter(new_format))
 
     # Our default level is WARN...
-    logging.root.setLevel(logging.WARN)
+    # logging.root.setLevel(logging.WARN)
 
     #
     # This will adjust all logging to DEBUG.  It's very loud.
     # However, you can see all subsystems and then selectively enable the
     # various subsystems you really want verbose logging out of.
     #
-    # logging.root.setLevel(logging.DEBUG)
+    logging.root.setLevel(logging.DEBUG)
     #
 
     logger = logging.getLogger('')
