@@ -152,7 +152,7 @@ export class SolIdxStack extends Stack {
         },
         {
           statusCode: '401',
-//           contentHandling: ContentHandling.CONVERT_TO_BINARY,
+//           contentHandling: ContentHandling.CONVERT_TO_TEXT,
 //           selectionPattern: '.*[UNAUTHORIZED].*',
 //           responseTemplates: {
 //             'application/json': 'invalid request signature',

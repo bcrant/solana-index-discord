@@ -12,7 +12,8 @@ def handler(event, context):
     logger.info(f'[EVENT]: {event}')
     logger.info(f'[CONTEXT]: {context}')
 
-    respond_to_discord_interaction(event, logger)
+    response = respond_to_discord_interaction(event, logger)
+    return response
 
 
 if os.getenv('AWS_EXECUTION_ENV') is None:

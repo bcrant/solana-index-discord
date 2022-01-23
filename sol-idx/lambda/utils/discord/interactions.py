@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 import requests
@@ -12,18 +13,17 @@ load_dotenv('../../../../.env', verbose=True)
 def respond_to_discord_interaction(lambda_event, logger):
     logger.info('Responding to Discord Interaction...')
 
-    logger.info('Validating Discord Interaction....')
-    validate_discord_interaction(lambda_event, logger)
-
     req_body = json.loads(lambda_event.get('body'))
     logger.debug(f'Request body: {type(req_body)} {req_body}')
 
     interaction_type = req_body.get('type')
     if interaction_type == 1:
-        respond_to_type_one(logger)
+        logger.info('Validating Discord Interaction....')
+        validate_discord_interaction(lambda_event, logger)
+        return respond_to_type_one(logger)
     if interaction_type == 2:
-        # respond_to_type_two_sync(req_body, logger)
-        respond_to_type_two_deferred(req_body, logger)
+        return respond_to_type_two_sync(req_body, logger)
+        # respond_to_type_two_deferred(req_body, logger)
 
 
 def validate_discord_interaction(lambda_event, logger):
@@ -36,23 +36,33 @@ def validate_discord_interaction(lambda_event, logger):
     timestamp = headers.get('x-signature-timestamp')
     logger.debug(f'Timestamp: {type(timestamp)} {timestamp}')
 
+    # raw_body = lambda_event.get('body')
     raw_body = lambda_event.get('body')
-    logger.debug(f'Raw Body: {type(raw_body)} {raw_body}')
+    logger.debug(f'Raw Body BEFORE: {type(raw_body)}')
+    logger.debug(f'Raw Body BEFORE repr: {repr(raw_body)}')
+    # decoded_raw_body = base64.urlsafe_b64decode(raw_body)
+    # logger.debug(f'Raw Body AFTER: {type(decoded_raw_body)}')
+    # logger.debug(f'Raw Body AFTER repr: {repr(decoded_raw_body)}')
+
+    logger.debug("Verifying that payloads match signature...")
+    PUBLIC_KEY = os.getenv('DISCORD_PUBLIC_KEY')
+    logger.debug(f'PUBLIC KEY: {PUBLIC_KEY}')
+
+    verify_key = VerifyKey(bytes.fromhex(PUBLIC_KEY))
+    logger.debug(f'Verify Key: {type(verify_key)}')
+
+    # verify_payload_a = timestamp.encode() + decoded_raw_body
+    verify_payload_a = f'{timestamp}{raw_body}'.encode()
+    logger.debug(f'Verify Payload A: {type(verify_payload_a)}')
+
+    verify_payload_b = bytes.fromhex(signature)
+    logger.debug(f'Verify Payload B: {type(verify_payload_b)}')
 
     try:
-        logger.debug("Verifying that payloads match signature...")
-        PUBLIC_KEY = os.getenv('DISCORD_PUBLIC_KEY')
-        logger.debug(f'PUBLIC KEY: {PUBLIC_KEY}')
-        verify_key = VerifyKey(bytes.fromhex(PUBLIC_KEY))
-        logger.debug(f'Verify Key: {verify_key}')
-
-        verify_payload_a = f'{timestamp}{raw_body}'.encode()
-        logger.debug(f'Verify Payload A: {type(verify_payload_a)} {verify_payload_a}')
-
-        verify_payload_b = bytes.fromhex(signature)
-        logger.debug(f'Verify Payload B: {type(verify_payload_b)} {verify_payload_b}')
-
-        verify_key.verify(verify_payload_a, verify_payload_b)
+        is_verified = verify_key.verify(verify_payload_a, verify_payload_b)
+        logger.debug(f'Is Verified? {bool(is_verified)} {type(is_verified)}')
+        if bool(is_verified):
+            logger.info('Completed Request Validation. Responding to request...')
 
     except BadSignatureError as e:
         logger.error(f'Bad Signature Error: {e}')
@@ -63,14 +73,14 @@ def validate_discord_interaction(lambda_event, logger):
         }
 
     except BaseException as err:
-        logger.error(f'{traceback.format_exc()} {err}')
+        logger.error(f'Base Exception: {traceback.format_exc()} {err}')
         raise err
 
 
 def respond_to_type_one(logger):
     logger.info('Response "type" == 1. Returning Ping Pong....')
     return {
-        'isBase64Encoded': True,
+        'isBase64Encoded': False,
         'statusCode': 200,
         'body': json.dumps({'type': 1})
     }
@@ -145,7 +155,6 @@ def respond_to_type_two_sync(req_body, logger):
     return {
         'isBase64Encoded': False,
         'statusCode': 200,
-        'body': json.dumps({'type': 1})
     }
 
 
