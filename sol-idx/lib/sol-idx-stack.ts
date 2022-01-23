@@ -40,18 +40,6 @@ export class SolIdxStack extends Stack {
     lambdaPolicy.addActions("s3:ListBucket")
     lambdaPolicy.addResources(this.bucket.bucketArn)
 
-    //
-    // Use this when Layer exists to save time building
-    //
-    // const lambdaDepsLayer = LayerVersion.fromLayerVersionArn(
-    //   this,
-    //   props.functionName + '-layer',
-    //   process.env.LAMBDA_LAYER_ARN as string
-    // )
-
-    //
-    // Use this when you need to rebuild the Lambda Layer
-    //
     const lambdaDepsLayer = new LayerVersion(this, props.functionName + '-layer', {
       code: Code.fromAsset('./lambda_layer', {
         bundling: {
@@ -99,8 +87,8 @@ export class SolIdxStack extends Stack {
       restApiName: restApiName,
       deployOptions: {
         stageName: "prod",
-        metricsEnabled: true,
         loggingLevel: MethodLoggingLevel.INFO,
+        metricsEnabled: true,
         dataTraceEnabled: true,
         tracingEnabled: true,
       },
@@ -124,12 +112,6 @@ export class SolIdxStack extends Stack {
       },
     });
 
-    //
-    // Leaving this here because I spent an entire weekend figuring out... the wrong thing.
-    // Turns out, do not need to create a request template and manipulate the header & body.
-    // Should have set proxy: false and sent the raw request straight through to lambda.
-    // RIP Saturday, Sunday
-
     const velocityTemplate = '{' +
       `"headers": {
           #foreach($param in $input.params().header.keySet())
@@ -137,8 +119,6 @@ export class SolIdxStack extends Stack {
           #end
         },` +
       `"jsonBody": "$util.escapeJavaScript($input.json("$"))",` +
-//       `"jsonBody": "$input.json("$")",` +
-//       `"rawBody": "$util.escapeJavaScript($input.body).replaceAll("\\'","'")",` +
       `"rawBody": "$util.escapeJavaScript($input.body).replace("\'", "'")",` +
       `"timestamp": "$input.params("x-signature-timestamp")",` +
       `"signature": "$input.params("x-signature-ed25519")"` +
@@ -146,7 +126,6 @@ export class SolIdxStack extends Stack {
 
     // Transform our requests and responses as appropriate.
     const discordBotIntegration: LambdaIntegration = new LambdaIntegration(this.lambdaFunction, {
-//       proxy: true,
       proxy: false,
       requestTemplates: {
         'application/json': velocityTemplate
@@ -157,7 +136,6 @@ export class SolIdxStack extends Stack {
         },
         {
           statusCode: '401',
-//           contentHandling: ContentHandling.CONVERT_TO_TEXT,
           selectionPattern: '.*[UNAUTHORIZED].*',
           responseTemplates: {
             'application/json': 'invalid request signature',
