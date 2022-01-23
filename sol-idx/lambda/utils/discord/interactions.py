@@ -16,14 +16,15 @@ def respond_to_discord_interaction(lambda_event, logger):
     req_body = json.loads(lambda_event.get('body'))
     logger.debug(f'Request body: {type(req_body)} {req_body}')
 
+    logger.info('Validating Discord Interaction....')
+    validate_discord_interaction(lambda_event, logger)
+
     interaction_type = req_body.get('type')
     if interaction_type == 1:
-        logger.info('Validating Discord Interaction....')
-        validate_discord_interaction(lambda_event, logger)
         return respond_to_type_one(logger)
     if interaction_type == 2:
-        return respond_to_type_two_sync(req_body, logger)
-        # respond_to_type_two_deferred(req_body, logger)
+        # return respond_to_type_two_sync(req_body, logger)
+        return respond_to_type_two_deferred(req_body, logger)
 
 
 def validate_discord_interaction(lambda_event, logger):
@@ -59,10 +60,11 @@ def validate_discord_interaction(lambda_event, logger):
     logger.debug(f'Verify Payload B: {type(verify_payload_b)}')
 
     try:
-        is_verified = verify_key.verify(verify_payload_a, verify_payload_b)
-        logger.debug(f'Is Verified? {bool(is_verified)} {type(is_verified)}')
-        if bool(is_verified):
-            logger.info('Completed Request Validation. Responding to request...')
+        # is_verified = verify_key.verify(verify_payload_a, verify_payload_b)
+        # logger.debug(f'Is Verified? {bool(is_verified)} {type(is_verified)}')
+        # if bool(is_verified):
+        #     logger.info('Completed Request Validation. Responding to request...')
+        verify_key.verify(verify_payload_a, verify_payload_b)
 
     except BadSignatureError as e:
         logger.error(f'Bad Signature Error: {e}')

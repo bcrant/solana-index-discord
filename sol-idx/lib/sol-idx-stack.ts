@@ -146,19 +146,19 @@ export class SolIdxStack extends Stack {
       // requestTemplates: {
       //   'application/json': velocityTemplate
       // },
-      integrationResponses: [
-        {
-          statusCode: '200',
-        },
-        {
-          statusCode: '401',
+//       integrationResponses: [
+//         {
+//           statusCode: '200',
+//         },
+//         {
+//           statusCode: '401',
 //           contentHandling: ContentHandling.CONVERT_TO_TEXT,
 //           selectionPattern: '.*[UNAUTHORIZED].*',
 //           responseTemplates: {
 //             'application/json': 'invalid request signature',
 //           },
-        },
-      ],
+//         },
+//       ],
     });
 
     // Add a POST method for the Discord APIs.
