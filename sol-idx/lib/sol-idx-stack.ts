@@ -12,7 +12,8 @@ import {
   Code,
   Function,
   LayerVersion,
-  Runtime 
+  Runtime,
+  Tracing
 } from 'aws-cdk-lib/aws-lambda';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import s3 = require('aws-cdk-lib/aws-s3');
@@ -90,6 +91,7 @@ export class SolIdxStack extends Stack {
       },
       initialPolicy: [lambdaPolicy],
       layers: [lambdaDepsLayer],
+      tracing: Tracing.ACTIVE,
     })
 
     const restApiName: string = "solana-index-discord-api"    
@@ -100,6 +102,7 @@ export class SolIdxStack extends Stack {
         metricsEnabled: true,
         loggingLevel: MethodLoggingLevel.INFO,
         dataTraceEnabled: true,
+        tracingEnabled: true,
       },
       defaultCorsPreflightOptions: {
         allowOrigins: Cors.ALL_ORIGINS,
@@ -126,39 +129,41 @@ export class SolIdxStack extends Stack {
     // Turns out, do not need to create a request template and manipulate the header & body.
     // Should have set proxy: false and sent the raw request straight through to lambda.
     // RIP Saturday, Sunday
-    //
-    // const velocityTemplate = '{' +
-    //   `"headers": {
-    //       #foreach($param in $input.params().header.keySet())
-    //       "$param": "$util.escapeJavaScript($input.params().header.get($param))"#if($foreach.hasNext),#end
-    //       #end
-    //     },` +
-    //   `"jsonBody": "$util.escapeJavaScript($input.json("$"))",` +
-    //   `"rawBody": "$util.escapeJavaScript($input.body).replaceAll("\\'","'")",` +
-    //   `"timestamp": "$input.params("x-signature-timestamp")",` +
-    //   `"signature": "$input.params("x-signature-ed25519")"` +
-    // '}';
+
+    const velocityTemplate = '{' +
+      `"headers": {
+          #foreach($param in $input.params().header.keySet())
+          "$param": "$util.escapeJavaScript($input.params().header.get($param))"#if($foreach.hasNext),#end
+          #end
+        },` +
+      `"jsonBody": "$util.escapeJavaScript($input.json("$"))",` +
+//       `"jsonBody": "$input.json("$")",` +
+//       `"rawBody": "$util.escapeJavaScript($input.body).replaceAll("\\'","'")",` +
+      `"rawBody": "$util.escapeJavaScript($input.body).replace("\'", "'")",` +
+      `"timestamp": "$input.params("x-signature-timestamp")",` +
+      `"signature": "$input.params("x-signature-ed25519")"` +
+    '}';
 
     // Transform our requests and responses as appropriate.
     const discordBotIntegration: LambdaIntegration = new LambdaIntegration(this.lambdaFunction, {
-      proxy: true,
-      // proxy: false,
-      // requestTemplates: {
-      //   'application/json': velocityTemplate
-      // },
-//       integrationResponses: [
-//         {
-//           statusCode: '200',
-//         },
-//         {
-//           statusCode: '401',
+//       proxy: true,
+      proxy: false,
+      requestTemplates: {
+        'application/json': velocityTemplate
+      },
+      integrationResponses: [
+        {
+          statusCode: '200',
+        },
+        {
+          statusCode: '401',
 //           contentHandling: ContentHandling.CONVERT_TO_TEXT,
-//           selectionPattern: '.*[UNAUTHORIZED].*',
-//           responseTemplates: {
-//             'application/json': 'invalid request signature',
-//           },
-//         },
-//       ],
+          selectionPattern: '.*[UNAUTHORIZED].*',
+          responseTemplates: {
+            'application/json': 'invalid request signature',
+          },
+        },
+      ],
     });
 
     // Add a POST method for the Discord APIs.

@@ -13,7 +13,7 @@ load_dotenv('../../../../.env', verbose=True)
 def respond_to_discord_interaction(lambda_event, logger):
     logger.info('Responding to Discord Interaction...')
 
-    req_body = json.loads(lambda_event.get('body'))
+    req_body = json.loads(lambda_event.get('jsonBody'))
     logger.debug(f'Request body: {type(req_body)} {req_body}')
 
     logger.info('Validating Discord Interaction....')
@@ -38,8 +38,8 @@ def validate_discord_interaction(lambda_event, logger):
     logger.debug(f'Timestamp: {type(timestamp)} {timestamp}')
 
     # raw_body = lambda_event.get('body')
-    raw_body = lambda_event.get('body')
-    logger.debug(f'Raw Body BEFORE: {type(raw_body)}')
+    raw_body = lambda_event.get('rawBody')
+    logger.debug(f'Raw Body BEFORE: {type(raw_body)} {raw_body}')
     logger.debug(f'Raw Body BEFORE repr: {repr(raw_body)}')
     # decoded_raw_body = base64.urlsafe_b64decode(raw_body)
     # logger.debug(f'Raw Body AFTER: {type(decoded_raw_body)}')
