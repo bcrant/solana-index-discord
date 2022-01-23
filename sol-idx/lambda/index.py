@@ -1,5 +1,5 @@
 import os
-from utils.discord.interactions import validate_discord_interaction
+from utils.discord.interactions import respond_to_discord_interaction
 from utils.environment import init_env
 
 
@@ -12,7 +12,8 @@ def handler(event, context):
     logger.info(f'[EVENT]: {event}')
     logger.info(f'[CONTEXT]: {context}')
 
-    validate_discord_interaction(event, logger)
+    response = respond_to_discord_interaction(event, logger)
+    return response
 
 
 if os.getenv('AWS_EXECUTION_ENV') is None:

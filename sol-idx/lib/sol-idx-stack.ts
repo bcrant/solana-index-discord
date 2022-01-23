@@ -1,6 +1,7 @@
 import { Construct } from 'constructs';
 import { Duration, Stack, StackProps } from 'aws-cdk-lib';
-import { 
+import {
+  ContentHandling,
   Cors,
   LambdaIntegration, 
   MethodLoggingLevel, 
@@ -11,7 +12,8 @@ import {
   Code,
   Function,
   LayerVersion,
-  Runtime 
+  Runtime,
+  Tracing
 } from 'aws-cdk-lib/aws-lambda';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import s3 = require('aws-cdk-lib/aws-s3');
@@ -38,18 +40,6 @@ export class SolIdxStack extends Stack {
     lambdaPolicy.addActions("s3:ListBucket")
     lambdaPolicy.addResources(this.bucket.bucketArn)
 
-    // //
-    // // Use this when Layer exists to save time building
-    // //
-    // const lambdaDepsLayer = LayerVersion.fromLayerVersionArn(
-    //   this, 
-    //   props.functionName + '-layer',
-    //   process.env.LAMBDA_LAYER_ARN as string
-    // )
-
-    //
-    // Use this when you need to rebuild the Lambda Layer
-    //
     const lambdaDepsLayer = new LayerVersion(this, props.functionName + '-layer', {
       code: Code.fromAsset('./lambda_layer', {
         bundling: {
@@ -60,7 +50,7 @@ export class SolIdxStack extends Stack {
               echo -e "[LOG] BUILDING DEPENDENCIES..." \
                 && pip install -r requirements.txt -t /asset-output/python \
                 && echo -e "[LOG] ZIPPING LAYER ARTIFACTS..." \
-                && cp -au . /asset-output/python 
+                && cp -au . /asset-output/python
             `
           ]
         }
@@ -69,7 +59,7 @@ export class SolIdxStack extends Stack {
     })
 
     lambdaPolicy.addActions("lambda:GetLayerVersion")
-    lambdaPolicy.addResources(lambdaDepsLayer.layerVersionArn)  
+    lambdaPolicy.addResources(lambdaDepsLayer.layerVersionArn)
 
     this.lambdaFunction = new Function(this, props.functionName, {
       code: Code.fromAsset('./lambda'),
@@ -89,6 +79,7 @@ export class SolIdxStack extends Stack {
       },
       initialPolicy: [lambdaPolicy],
       layers: [lambdaDepsLayer],
+      tracing: Tracing.ACTIVE,
     })
 
     const restApiName: string = "solana-index-discord-api"    
@@ -96,9 +87,10 @@ export class SolIdxStack extends Stack {
       restApiName: restApiName,
       deployOptions: {
         stageName: "prod",
-        metricsEnabled: true,
         loggingLevel: MethodLoggingLevel.INFO,
+        metricsEnabled: true,
         dataTraceEnabled: true,
+        tracingEnabled: true,
       },
       defaultCorsPreflightOptions: {
         allowOrigins: Cors.ALL_ORIGINS,
@@ -120,31 +112,24 @@ export class SolIdxStack extends Stack {
       },
     });
 
-    //
-    // Leaving this here because I spent an entire weekend figuring out... the wrong thing.
-    // Turns out, do not need to create a request template and manipulate the header & body.
-    // Should have set proxy: false and sent the raw request straight through to lambda.
-    // RIP Saturday, Sunday
-    //
-    // const velocityTemplate = '{' +
-    //   `"headers": {
-    //       #foreach($param in $input.params().header.keySet())
-    //       "$param": "$util.escapeJavaScript($input.params().header.get($param))"#if($foreach.hasNext),#end
-    //       #end
-    //     },` +
-    //   `"jsonBody": "$util.escapeJavaScript($input.json("$"))",` +
-    //   `"rawBody": "$util.escapeJavaScript($input.body).replaceAll("\\'","'")",` +
-    //   `"timestamp": "$input.params("x-signature-timestamp")",` +
-    //   `"signature": "$input.params("x-signature-ed25519")"` +
-    // '}';
+    const velocityTemplate = '{' +
+      `"headers": {
+          #foreach($param in $input.params().header.keySet())
+          "$param": "$util.escapeJavaScript($input.params().header.get($param))"#if($foreach.hasNext),#end
+          #end
+        },` +
+      `"jsonBody": "$util.escapeJavaScript($input.json("$"))",` +
+      `"rawBody": "$util.escapeJavaScript($input.body).replace("\'", "'")",` +
+      `"timestamp": "$input.params("x-signature-timestamp")",` +
+      `"signature": "$input.params("x-signature-ed25519")"` +
+    '}';
 
     // Transform our requests and responses as appropriate.
     const discordBotIntegration: LambdaIntegration = new LambdaIntegration(this.lambdaFunction, {
-      proxy: true,
-      // proxy: false,
-      // requestTemplates: {
-      //   'application/json': velocityTemplate
-      // },
+      proxy: false,
+      requestTemplates: {
+        'application/json': velocityTemplate
+      },
       integrationResponses: [
         {
           statusCode: '200',
@@ -176,8 +161,8 @@ export class SolIdxStack extends Stack {
     const usagePlan = this.restApi.addUsagePlan("api-key-usage-plan", {
       name: "solana-index-discord-api-usage-plan",
       throttle: {
-        rateLimit: 10,
-        burstLimit: 2
+        rateLimit: 20,
+        burstLimit: 10
       },
     });
 
