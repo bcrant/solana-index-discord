@@ -9,6 +9,22 @@ from dotenv import load_dotenv
 load_dotenv('../../../../.env', verbose=True)
 
 
+def respond_to_discord_interaction(lambda_event, logger):
+    logger.info('Responding to Discord Interaction...')
+
+    req_body = json.loads(lambda_event.get('body'))
+    logger.info(f'Request body: {type(req_body)} {req_body}')
+
+    if req_body is not None:
+        interaction_type = req_body.get('type')
+        if interaction_type == 1:
+            respond_to_type_one(lambda_event, logger)
+        if interaction_type == 2:
+            respond_to_type_two(req_body, logger)
+    else:
+        logger.error(f'Lambda Event has no body or dot get did not work: {lambda_event}')
+
+
 def validate_discord_interaction(lambda_event, logger):
     headers = lambda_event.get('headers')
     # logger.info(f'Headers: {type(headers)} {headers}')
@@ -21,9 +37,6 @@ def validate_discord_interaction(lambda_event, logger):
 
     raw_body = lambda_event.get('body')
     # logger.info(f'Raw Body: {type(raw_body)} {raw_body}')
-
-    json_body = json.loads(raw_body)
-    # logger.info(f'JSON Body: {type(json_body)} {json_body}')
 
     try:
         logger.info("Verifying that payloads match signature...")
@@ -38,9 +51,16 @@ def validate_discord_interaction(lambda_event, logger):
         # logger.info(f'Verify Payload B: {type(verify_payload_b)} {verify_payload_b}')
 
         is_verified = verify_key.verify(verify_payload_a, verify_payload_b)
-        # logger.info(f'Verification Result: {bool(is_verified)} {type(is_verified)} {is_verified}')
+        logger.info(f'Verification Result: {bool(is_verified)}')
 
-        return is_verified, json_body
+        if bool(is_verified):
+            return {
+                'isBase64Encoded': False,
+                'statusCode': 200,
+                'body': json.dumps({'type': 1})
+            }
+        else:
+            logger.error(f'Problem validating Discord Interaction.')
 
     except BadSignatureError as e:
         logger.error(f'Bad Signature Error: {e}')
@@ -53,44 +73,60 @@ def validate_discord_interaction(lambda_event, logger):
         logger.error(f'{traceback.format_exc()} {err}')
 
 
-def respond_to_discord_interaction(req_body, logger):
-    logger.info('Responding to Discord Interaction...')
-
-    if req_body.get('type') == 1:
-        respond_to_type_one(logger)
-
-    if req_body.get('type') == 2:
-        respond_to_type_two(req_body, logger)
-
-
-def respond_to_type_one(logger):
-    logger.info('Response "type" == 1. Returning Ping with Pong...')
-    return {
-        'isBase64Encoded': False,
-        'statusCode': 200,
-        'body': json.dumps({'type': 1})
-    }
+def respond_to_type_one(lambda_event, logger):
+    logger.info('Response "type" == 1. Validating Discord Interaction....')
+    validate_discord_interaction(lambda_event, logger)
 
 
 def respond_to_type_two(req_body, logger):
     logger.info('Response "type" == 2. Returning message...')
     url = get_interaction_response_url(req_body, logger)
-    msg_content = get_interaction_response_msg_pyth(logger)
+    # msg_content = get_interaction_response_msg_pyth(logger)
     # msg_content = get_interaction_response_msg_markdown(logger)
+    # url = get_webhook_post_interaction_url(req_body, logger)
 
+    # resp_json = {
+    #     'statusCode': 200,
+    #     'type': 4,
+    #     'data': {
+    #         'content': json.dumps(msg_content),
+    #     }
+    # }
+
+    resp_json = {
+        'statusCode': 200,
+        'type': 5,
+    }
+
+    #
+    # POST
+    #
     interaction_response = requests.post(url, json=resp_json)
     logger.info(f'Interaction Response: {interaction_response}')
     logger.info(f'Interaction Response: {interaction_response.content}')
+
+    #
+    # PATCH
+    #
+    hook_url = get_interaction_webhook_url(req_body, logger)
+    hook_msg = get_interaction_response_msg_pyth(logger)
+    hook_json = {
+        'type': 3,
+        'content': json.dumps(hook_msg)
+    }
+    webhook_interaction_response = requests.patch(
+        hook_url,
+        headers={'content-type': 'application/json'},
+        json=hook_json
+    )
+    logger.info(f'Webhook Interaction Response: {webhook_interaction_response}')
+    logger.info(f'Webhook Interaction Response: {webhook_interaction_response.content}')
+
+    logger.info(f'Finished responding to Discord Interaction...')
+    logger.info(f'Returning to 200 Api Gateway...')
     return {
         'isBase64Encoded': False,
         'statusCode': 200,
-        'body': json.dumps({
-            'type': 4,
-            'data': {
-                'tts': False,
-                'content': msg_content,
-            }
-        })
     }
 
 
@@ -116,13 +152,19 @@ def get_interaction_response_msg_pyth(logger):
 def get_interaction_response_msg_markdown(logger):
     logger.info('Responding to Discord Interaction with a simple message...')
     resp_msg = ':fire: Im a little teapot'
-    # resp_json = {
-    #     "statusCode": 200,
-    #     "type": 4,
-    #     "data": {
-    #         "tts": False,
-    #         "content": msg,
-    #     }
-    # }
     logger.info(f'Response Message: {resp_msg}')
     return resp_msg
+
+
+def get_interaction_webhook_url(req_body, logger):
+    logger.info('Building URL for Discord Interaction Response...')
+    interaction_token = req_body.get('token')
+    resp_url = f'https://discord.com/api/v8/webhooks' \
+               f'/{os.getenv("DISCORD_APP_ID")}' \
+               f'/{interaction_token}' \
+               f'/messages' \
+               f'/@original'
+
+    logger.info(f'Response URL: {resp_url}')
+    return resp_url
+

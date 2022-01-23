@@ -41,11 +41,11 @@ export class SolIdxStack extends Stack {
     //
     // Use this when Layer exists to save time building
     //
-//     const lambdaDepsLayer = LayerVersion.fromLayerVersionArn(
-//       this,
-//       props.functionName + '-layer',
-//       process.env.LAMBDA_LAYER_ARN as string
-//     )
+    // const lambdaDepsLayer = LayerVersion.fromLayerVersionArn(
+    //   this,
+    //   props.functionName + '-layer',
+    //   process.env.LAMBDA_LAYER_ARN as string
+    // )
 
     //
     // Use this when you need to rebuild the Lambda Layer
