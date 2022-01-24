@@ -106,9 +106,8 @@ export class SolIdxStack extends Stack {
     // User authentication endpoint configuration
     const discordBotEventItems = this.restApi.root.addResource("event", {
       defaultCorsPreflightOptions: {
-        allowOrigins: [
-          "*",
-        ],
+        allowOrigins: [ 'https://discord.com' ],
+        allowMethods: [ 'GET', 'POST', 'PATCH' ]
       },
     });
 
