@@ -31,4 +31,5 @@ class SolanaTokens:
         'FIDA', 'DFL', 'DIA', 'RAMP',
         'PRQ', 'FRONT', 'OOE', 'SLRS',
         'SNY', 'SLND', 'UPS', 'CYS',
+        'SERUM', 'RIN'
     }
