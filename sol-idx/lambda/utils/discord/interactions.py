@@ -104,9 +104,17 @@ def respond_to_type_two_deferred(req_body, logger):
     logger.info('Sending Deferred Channel Message...')
     hook_url = get_interaction_webhook_url(req_body, logger)
     hook_msg = get_interaction_response_msg_pyth(logger)
+    multi_line_str = '''
+    ```
+    
+    I am a banana
+
+    ```
+    '''
+
     hook_json = {
         'type': 3,
-        'content': json.dumps(hook_msg)
+        'content': hook_msg
     }
     hook_response = requests.patch(
         hook_url,
@@ -129,6 +137,7 @@ def respond_to_type_two_sync(req_body, logger):
     url = get_interaction_response_url(req_body, logger)
     msg_content = get_interaction_response_msg_pyth(logger)
     # msg_content = get_interaction_response_msg_markdown(logger)
+
     resp_json = {
         'statusCode': 200,
         'type': 4,

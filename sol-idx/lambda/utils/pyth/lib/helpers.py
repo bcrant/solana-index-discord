@@ -1,33 +1,49 @@
-import time
 import datetime
-import dateutil
-from dateutil import relativedelta
-from pytrends.request import TrendReq
-pytrends = TrendReq(hl='en-US')
-
-
-def get_unix_timestamps():
-    utc_12M_ago_ts = int(datetime.datetime.timestamp(datetime.datetime.utcfromtimestamp(
-        int(time.time())) - dateutil.relativedelta.relativedelta(months=12)
-    ))
-    utc_now_ts = int(time.time())
-    return utc_12M_ago_ts, utc_now_ts
-
-
-def get_date_from_unix_timestamp(ts: int):
-    return datetime.datetime.fromtimestamp(ts/1000).isoformat()
+from textwrap import dedent
 
 
 def get_iso_utc_timestamp_now():
     return datetime.datetime.utcnow().isoformat()
 
 
-def get_trends_df(tokens: list):
-    url_fmt = [
-        token + ' crypto'
-        for token in tokens
-    ]
-    pytrends.build_payload(kw_list=url_fmt, timeframe='today 12-m')
-    trends_df = pytrends.interest_over_time()
-    trends_df.columns = [col.rstrip(' crypto') for col in trends_df.columns]
-    return trends_df
+def fmt_pyth_output(msg: dict, logger):
+    logger.debug('Formatting Pyth Message...')
+
+    # Sort all coins in descending order
+    logger.debug('Sorting Token Values...')
+    sorted_msg = dict(sorted(msg.items(), key=lambda item: item[1], reverse=True))
+
+    # Justify all values off of the maximum, with one leading space and four digits after decimal showing.
+    max_coin_len = len(str(sorted(list(msg.values()), reverse=True)[0]).split('.')[0])
+    price_justify = 1 + max_coin_len + 4
+
+    # Convert to SOL
+    converted_msg = convert_to_solana(sorted_msg, logger)
+
+    logger.debug('Formatting Strings as Markdown for Discord...')
+    out_str = ''
+    for k, v in converted_msg.items():
+        fmt_k = '{:6s}'.format(k)
+        trunc_usd = str('{:.4f}'.format(v.get('USD'))).rjust(price_justify)
+        fmt_v_usd = '$ {} USD'.format(trunc_usd)
+        spacer = '{:2s}→{:2s}'.format('', '')
+        fmt_v_sol = '{:.4f} SOL'.format(v.get('SOL'))
+        coin_price = dedent(f'''```{fmt_k}{fmt_v_usd}{spacer}{fmt_v_sol}```''')
+        out_str += coin_price
+
+    logger.info(f'Formatted Pyth Message: {dedent(out_str)}')
+    return dedent(out_str)
+
+
+def convert_to_solana(prices: dict, logger):
+    logger.debug('Converting Token Values to Units of SOL...')
+    converted_prices = dict()
+    sol_price = prices.get('SOL')
+    for token, price in prices.items():
+        converted_price = prices.get(token) / sol_price
+        converted_prices[token] = {
+            'USD': price,
+            'SOL': converted_price
+        }
+
+    return converted_prices

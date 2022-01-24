@@ -5,7 +5,7 @@ from pythclient.pythclient import PythClient
 from pythclient.ratelimit import RateLimit
 from pythclient.utils import get_key
 from utils.pyth.lib.constants import SolanaTokens
-from utils.pyth.lib.helpers import get_iso_utc_timestamp_now
+from utils.pyth.lib.helpers import fmt_pyth_output, get_iso_utc_timestamp_now
 
 RateLimit.configure_default_ratelimit(overall_cps=9, method_cps=3, connection_cps=3)
 
@@ -26,9 +26,6 @@ async def get_pyth_price_feed():
             valid_prices = format_price_records(await sp.get_prices())
             if valid_prices is not None:
                 solana_products_prices[valid_prices[0]] = valid_prices[1]
-
-        # df = get_pyth_df(solana_products_prices)
-        # print(df)
 
         print(solana_products_prices)
         return solana_products_prices
@@ -87,9 +84,9 @@ def get_pyth_discord_response(logger):
             "SLN": 2.6064000000000003,
             "FIDA": 1.4817
         }
-
         logger.info(f'Pyth Price Feed Message: {type(msg)} {msg}')
-        return msg
+
+        return fmt_pyth_output(msg, logger)
 
     except SolanaException as s_err:
         msg = {'Solana Exception': s_err}
