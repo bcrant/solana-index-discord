@@ -47,7 +47,7 @@ def init_logger():
 
     aws_log_format = '[%(levelname)s] %(name)-25s %(pathname)s:%(lineno)s %(message)s'
 
-    log_level = logging.DEBUG
+    log_level = logging.INFO
 
     if os.getenv('AWS_EXECUTION_ENV') is None:
         # NOTE: Local Dev, this formatter will be respected
@@ -76,7 +76,7 @@ def init_logger():
     # However, you can see all subsystems and then selectively enable the
     # various subsystems you really want verbose logging out of.
     #
-    logging.root.setLevel(logging.DEBUG)
+    # logging.root.setLevel(logging.DEBUG)
     #
 
     logger = logging.getLogger('')
@@ -93,6 +93,11 @@ def init_logger():
     # botocore.auth
     # botocore.retryHandler
     # botocore.retries.standard
+
+    #
+    # Enable Requests (urllib3) Logger
+    #
+    logging.getLogger('urllib3.connectionpool').setLevel(logging.DEBUG)
 
     #
     # Enable the retry handler, because we should not really have any.

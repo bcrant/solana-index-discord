@@ -9,8 +9,8 @@ def handler(event, context):
     """
     logger = init_env()
     logger.info('RUNNING LAMBDA FUNCTION... inputs: ')
-    logger.info(f'[EVENT]: {event}')
-    logger.info(f'[CONTEXT]: {context}')
+    logger.debug(f'[EVENT]: {event}')
+    logger.debug(f'[CONTEXT]: {context}')
 
     response = respond_to_discord_interaction(event, logger)
     return response

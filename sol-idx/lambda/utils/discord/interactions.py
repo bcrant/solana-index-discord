@@ -68,7 +68,7 @@ def validate_discord_interaction(lambda_event, logger):
         raise err
 
     finally:
-        logger.info('Completed Request Validation.')
+        logger.debug('Completed Request Validation.')
 
 
 def respond_to_type_one(logger):
@@ -100,8 +100,7 @@ def respond_to_type_two_deferred(req_body, logger):
         defer_url,
         json=defer_json,
     )
-    logger.info(f'Interaction Response (Defer): {defer_response}')
-    logger.info(f'Interaction Response (Defer): {defer_response.content}')
+    logger.info(f'Interaction Response (Defer): {defer_response} {defer_response.content}')
 
     #
     # PATCH | Edit Initial Response to Interaction
@@ -117,8 +116,7 @@ def respond_to_type_two_deferred(req_body, logger):
         hook_url,
         json=hook_json,
     )
-    logger.info(f'Interaction Response (Edit Initial Response): {hook_response}')
-    logger.info(f'Interaction Response (Edit Initial Response): {hook_response.content}')
+    logger.info(f'Interaction Response (Edit Initial Response): {hook_response} {hook_response.content}')
 
     logger.debug(f'Finished responding to Discord Interaction...')
     logger.debug(f'Returning 200 to API Gateway...')
@@ -145,8 +143,7 @@ def respond_to_type_two_sync(req_body, logger):
         json=resp_json,
         headers={'Content-Type': 'application/json'}
     )
-    logger.info(f'Interaction Response: {interaction_response}')
-    logger.info(f'Interaction Response: {interaction_response.content}')
+    logger.info(f'Interaction Response:  {interaction_response} {interaction_response.content}')
 
     logger.debug(f'Finished responding to Discord Interaction...')
     logger.debug(f'Returning to 200 Api Gateway...')
@@ -171,7 +168,7 @@ def get_interaction_response_url(req_body, logger):
 def get_interaction_response_msg_pyth(logger):
     logger.info('Responding to Discord Interaction with Pyth price feed...')
     resp_msg = get_pyth_discord_response(logger)
-    logger.info(f'Response Message: {resp_msg}')
+    logger.debug(f'Response Message: {resp_msg}')
     return resp_msg
 
 
