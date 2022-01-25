@@ -76,7 +76,7 @@ def get_pyth_discord_response(logger):
         # Provide a fallback value when API Gateway IP gets banned
         # I might try to port the PythHttpClient from pyth-client-js to pyth-client-py
         # to facilitate trivial requests that do not require a websocket
-        return IpBanned.FALLBACK_MSG
+        return fmt_pyth_output(IpBanned.FALLBACK_MSG, logger)
 
 
 if __name__ == '__main__':
