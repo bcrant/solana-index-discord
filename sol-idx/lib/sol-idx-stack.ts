@@ -41,7 +41,7 @@ export class SolIdxStack extends Stack {
     lambdaPolicy.addResources(this.bucket.bucketArn)
 
     const lambdaDepsLayer = new LayerVersion(this, props.functionName + '-layer', {
-      code: Code.fromAsset('./lambda_layer', {
+      code: Code.fromAsset('./lambda-layer', {
         bundling: {
           image: Runtime.PYTHON_3_9.bundlingImage,
           command: [
@@ -106,9 +106,8 @@ export class SolIdxStack extends Stack {
     // User authentication endpoint configuration
     const discordBotEventItems = this.restApi.root.addResource("event", {
       defaultCorsPreflightOptions: {
-        allowOrigins: [
-          "*",
-        ],
+        allowOrigins: [ 'https://discord.com' ],
+        allowMethods: [ 'GET', 'POST', 'PATCH' ]
       },
     });
 

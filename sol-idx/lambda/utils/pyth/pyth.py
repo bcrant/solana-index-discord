@@ -4,10 +4,10 @@ from pythclient.pythaccounts import PythPriceAccount, PythPriceStatus
 from pythclient.pythclient import PythClient
 from pythclient.ratelimit import RateLimit
 from pythclient.utils import get_key
-from utils.pyth.lib.constants import SolanaTokens
+from utils.pyth.lib.constants import SolanaTokens, IpBanned
 from utils.pyth.lib.helpers import fmt_pyth_output, get_iso_utc_timestamp_now
 
-RateLimit.configure_default_ratelimit(overall_cps=9, method_cps=3, connection_cps=3)
+RateLimit.configure_default_ratelimit(overall_cps=2, method_cps=2, connection_cps=2)
 
 
 async def get_pyth_price_feed():
@@ -21,13 +21,10 @@ async def get_pyth_price_feed():
         solana_products = limit_to_solana_tokens(await c.get_products())
         solana_products_prices = dict()
         for sp in solana_products:
-            # valid_prices = validate_price_status(await sp.get_prices())
-            # Skipping validation for now since devnet does not have as many producers...
-            valid_prices = format_price_records(await sp.get_prices())
+            valid_prices = validate_price_status(await sp.get_prices())
             if valid_prices is not None:
                 solana_products_prices[valid_prices[0]] = valid_prices[1]
 
-        print(solana_products_prices)
         return solana_products_prices
 
 
@@ -50,10 +47,9 @@ def validate_price_status(prices: PythPriceAccount):
             else:
                 invalid_count += 1
 
-        if valid_count >= 3:
+        if valid_count >= 2:
             # Columns: UTC DateTime, Symbol, Price
             return tuple((
-                get_iso_utc_timestamp_now(),
                 pr.product.symbol.lstrip('Crypto.').rstrip('/USD'),
                 pr.aggregate_price_info.price
             ))
@@ -62,12 +58,8 @@ def validate_price_status(prices: PythPriceAccount):
 def format_price_records(prices: PythPriceAccount):
     for _, pr in {**prices}.items():
         # Columns: UTC DateTime, Symbol, Price
-        # return tuple((
-        #     get_iso_utc_timestamp_now(),
-        #     pr.product.symbol.lstrip('Crypto.').rstrip('/USD'),
-        #     pr.aggregate_price_info.price
-        # ))
         return tuple((
+            get_iso_utc_timestamp_now(),
             pr.product.symbol.lstrip('Crypto.').rstrip('/USD'),
             pr.aggregate_price_info.price
         ))
@@ -75,23 +67,16 @@ def format_price_records(prices: PythPriceAccount):
 
 def get_pyth_discord_response(logger):
     try:
-        # msg = asyncio.run(get_pyth_price_feed())
-        msg = {
-            "SOL": 95.054,
-            "RAY": 3.70145,
-            "SNY": 1.8314000000000001,
-            "MNGO": 0.1599069,
-            "SLN": 2.6064000000000003,
-            "FIDA": 1.4817
-        }
+        msg = asyncio.run(get_pyth_price_feed())
         logger.info(f'Pyth Price Feed Message: {type(msg)} {msg}')
-
         return fmt_pyth_output(msg, logger)
 
     except SolanaException as s_err:
-        msg = {'Solana Exception': s_err}
-        logger.error(msg)
-        return msg
+        logger.error(f'Solana Exception: {s_err}')
+        # Provide a fallback value when API Gateway IP gets banned
+        # I might try to port the PythHttpClient from pyth-client-js to pyth-client-py
+        # to facilitate trivial requests that do not require a websocket
+        return IpBanned.FALLBACK_MSG
 
 
 if __name__ == '__main__':

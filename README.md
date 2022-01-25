@@ -1,27 +1,32 @@
-# SETUP COMMANDS
+# Solana Index Discord
+An index of Solana DeFi Tokens measured in units of SOL. 
 
-`mkdir sol-idx`
-`cd sol-idx`
+Receive updates directly from your Discord Server by installing the bot and running `/sol` command.
 
-# Node
-`nvm install --lts`
-`nvm use --lts`
-`node -v > .nvmrc`
+## Set Up
+`* Clone repo *`   
+`$ mkdir sol-idx`  
+`$ cd sol-idx`  
 
-`**Set up AWS CLI profile**`
+### Node
+`$ nvm install --lts`  
+`$ nvm use --lts`  
+`$ node -v > .nvmrc`  
 
-# AWS CDK
-`npm install aws-cdk-lib`
-`npm install -g aws-cdk`
+`* Set up AWS CLI profile *`
 
-`cdk bootstrap aws://{AWS_ACCOUNT_NUMBER}/{AWS_REGION}`
-`cdk init app --language typescript`
+### AWS CDK
+`$ npm install aws-cdk-lib`  
+`$ npm install -g aws-cdk`  
 
-`**Add .env etc to .gitignore`
-`git init`
+`cdk bootstrap aws://{AWS_ACCOUNT_NUMBER}/{AWS_REGION}`  
+`cdk init app --language typescript`  
+ 
+`git init`    
 
-# Python
-`pyenv install 3.9.5`
-`pyenv virtualenv 3.9.5 solana_index`
-`pyenv local solana_index`
-`pip install --upgrade pip`
+### Python
+`pyenv install 3.9.5`  
+`pyenv virtualenv 3.9.5 solana_index`  
+`pyenv local solana_index`  
+`pip install --upgrade pip`  
+`pip install -r ./sol-idx/lambda-layer/requirements.txt`  

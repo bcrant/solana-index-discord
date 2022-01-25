@@ -68,7 +68,7 @@ def validate_discord_interaction(lambda_event, logger):
         raise err
 
     finally:
-        logger.info('Completed Request Validation.')
+        logger.debug('Completed Request Validation.')
 
 
 def respond_to_type_one(logger):
@@ -82,6 +82,12 @@ def respond_to_type_one(logger):
 
 def respond_to_type_two_deferred(req_body, logger):
     #
+    # Reuse same Session
+    #
+    s = requests.Session()
+    s.headers.update({'Content-Type': 'application/json'})
+
+    #
     # POST | DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE
     #
     logger.info('Response "type" == 2. Deferring Channel Message...')
@@ -90,13 +96,11 @@ def respond_to_type_two_deferred(req_body, logger):
         'statusCode': 200,
         'type': 5,
     }
-    defer_response = requests.post(
+    defer_response = s.post(
         defer_url,
         json=defer_json,
-        headers={'Content-Type': 'application/json'}
     )
-    logger.info(f'Interaction Response (Defer): {defer_response}')
-    logger.info(f'Interaction Response (Defer): {defer_response.content}')
+    logger.info(f'Interaction Response (Defer): {defer_response} {defer_response.content}')
 
     #
     # PATCH | Edit Initial Response to Interaction
@@ -104,28 +108,18 @@ def respond_to_type_two_deferred(req_body, logger):
     logger.info('Sending Deferred Channel Message...')
     hook_url = get_interaction_webhook_url(req_body, logger)
     hook_msg = get_interaction_response_msg_pyth(logger)
-    multi_line_str = '''
-    ```
-    
-    I am a banana
-
-    ```
-    '''
-
     hook_json = {
         'type': 3,
         'content': hook_msg
     }
-    hook_response = requests.patch(
+    hook_response = s.patch(
         hook_url,
         json=hook_json,
-        headers={'Content-Type': 'application/json'}
     )
-    logger.info(f'Interaction Response (Edit Initial Response): {hook_response}')
-    logger.info(f'Interaction Response (Edit Initial Response): {hook_response.content}')
+    logger.info(f'Interaction Response (Edit Initial Response): {hook_response} {hook_response.content}')
 
-    logger.info(f'Finished responding to Discord Interaction...')
-    logger.info(f'Returning 200 to API Gateway...')
+    logger.debug(f'Finished responding to Discord Interaction...')
+    logger.debug(f'Returning 200 to API Gateway...')
     return {
         'isBase64Encoded': False,
         'statusCode': 200,
@@ -136,7 +130,6 @@ def respond_to_type_two_sync(req_body, logger):
     logger.info('Response "type" == 2. Returning message...')
     url = get_interaction_response_url(req_body, logger)
     msg_content = get_interaction_response_msg_pyth(logger)
-    # msg_content = get_interaction_response_msg_markdown(logger)
 
     resp_json = {
         'statusCode': 200,
@@ -150,11 +143,10 @@ def respond_to_type_two_sync(req_body, logger):
         json=resp_json,
         headers={'Content-Type': 'application/json'}
     )
-    logger.info(f'Interaction Response: {interaction_response}')
-    logger.info(f'Interaction Response: {interaction_response.content}')
+    logger.info(f'Interaction Response:  {interaction_response} {interaction_response.content}')
 
-    logger.info(f'Finished responding to Discord Interaction...')
-    logger.info(f'Returning to 200 Api Gateway...')
+    logger.debug(f'Finished responding to Discord Interaction...')
+    logger.debug(f'Returning to 200 Api Gateway...')
     return {
         'isBase64Encoded': False,
         'statusCode': 200,
@@ -162,33 +154,26 @@ def respond_to_type_two_sync(req_body, logger):
 
 
 def get_interaction_response_url(req_body, logger):
-    logger.info('Building URL for Discord Interaction Response...')
+    logger.debug('Building URL for Discord Interaction Response...')
     interaction_id = req_body.get('id')
     interaction_token = req_body.get('token')
     resp_url = f'https://discord.com/api/v8/interactions' \
                f'/{interaction_id}' \
                f'/{interaction_token}' \
                f'/callback'
-    logger.info(f'Response URL: {resp_url}')
+    logger.debug(f'Response URL: {resp_url}')
     return resp_url
 
 
 def get_interaction_response_msg_pyth(logger):
     logger.info('Responding to Discord Interaction with Pyth price feed...')
     resp_msg = get_pyth_discord_response(logger)
-    logger.info(f'Response Message: {resp_msg}')
-    return resp_msg
-
-
-def get_interaction_response_msg_markdown(logger):
-    logger.info('Responding to Discord Interaction with a simple message...')
-    resp_msg = ':fire: Im a little teapot'
-    logger.info(f'Response Message: {resp_msg}')
+    logger.debug(f'Response Message: {resp_msg}')
     return resp_msg
 
 
 def get_interaction_webhook_url(req_body, logger):
-    logger.info('Building URL for Discord Interaction Response...')
+    logger.debug('Building URL for Discord Interaction Response...')
     interaction_token = req_body.get('token')
     resp_url = f'https://discord.com/api/v8/webhooks' \
                f'/{os.getenv("DISCORD_APP_ID")}' \
@@ -196,5 +181,5 @@ def get_interaction_webhook_url(req_body, logger):
                f'/messages' \
                f'/@original'
 
-    logger.info(f'Response URL: {resp_url}')
+    logger.debug(f'Response URL: {resp_url}')
     return resp_url

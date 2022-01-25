@@ -31,7 +31,9 @@ def fmt_pyth_output(msg: dict, logger):
         coin_price = dedent(f'''```{fmt_k}{fmt_v_usd}{spacer}{fmt_v_sol}```''')
         out_str += coin_price
 
-    logger.info(f'Formatted Pyth Message: {dedent(out_str)}')
+    out_str += '\n_Real-time on-chain prices courtesy of pyth.network_'
+
+    logger.debug(f'Formatted Pyth Message: {dedent(out_str)}')
     return dedent(out_str)
 
 
