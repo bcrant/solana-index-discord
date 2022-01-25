@@ -29,3 +29,13 @@ class SolanaTokens:
         'SWOLE', 'GOFX', 'SOLPAD', 'INU', 'UPS', 'UXP', 'KITTY', 'NEKI', 'BASIS', 'SECO', 'RACEFI', 'BOP', 'ISOLA',
         'FTR', 'GRAPE', 'SHILL', 'WOOF', 'OXS', 'NINJA', 'PRT', 'SCNSOL', 'POLIS', 'DFL'
     }
+
+
+class IpBanned:
+    FALLBACK_MSG = {
+        'SOL': 88.4050,
+        'RAY': 3.3423,
+        'SNY': 1.7772,
+        'FIDA': 1.4817,
+        'MNGO': 0.1495
+    }
