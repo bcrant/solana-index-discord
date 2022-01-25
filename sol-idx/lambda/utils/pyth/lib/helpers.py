@@ -21,7 +21,7 @@ def fmt_pyth_output(msg: dict, logger):
     converted_msg = convert_to_solana(sorted_msg, logger)
 
     logger.debug('Formatting Strings as Markdown for Discord...')
-    out_str = 'An index of Solana DeFi Tokens measured in units of SOL\n'
+    out_str = ''
     for k, v in converted_msg.items():
         fmt_k = '{:6s}'.format(k)
         trunc_usd = str('{:.4f}'.format(v.get('USD'))).rjust(price_justify)
