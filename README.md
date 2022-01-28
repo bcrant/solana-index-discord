@@ -2,12 +2,17 @@
 
 Receive price updates directly to your Discord Server by installing the bot and running `/sol` command.
 
-https://user-images.githubusercontent.com/17074379/151489688-cb55be83-d380-402c-b4b6-0fef667dbe9f.mov
+https://user-images.githubusercontent.com/17074379/151489688-cb55be83-d380-402c-b4b6-0fef667dbe9f.mov 
+<br/>
+<br/>
+
+## About
 
 Powered by `Pyth` ([Website](https://pyth.network/) | [Github](https://github.com/pyth-network)) on-chain price feeds, Solana Index Discord is an index of popular Solana DeFi Tokens, benchmarked to units of SOL. 
 
 ![Demo](docs/SolanaIndexDiscord.png)
-
+<br/>
+<br/>
 
 ---- 
 
