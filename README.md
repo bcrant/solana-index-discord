@@ -2,7 +2,8 @@
 
 Receive price updates directly to your Discord Server by installing the bot and running `/sol` command.
 
-https://user-images.githubusercontent.com/17074379/151489688-cb55be83-d380-402c-b4b6-0fef667dbe9f.mov 
+https://user-images.githubusercontent.com/17074379/151489688-cb55be83-d380-402c-b4b6-0fef667dbe9f.mov
+
 <br/>
 <br/>
 
@@ -104,7 +105,7 @@ Shouts out to [John McDonald](https://www.linkedin.com/in/john-mcdonald-dev/) fo
 <br><br>
 <figure>
     <a href="https://paypal.me/briancrant?locale.x=en_US"> 
-        <img src="documentation/images/bmc-button.png" alt="Buy us coffee" width="200" />
+        <img src="https://raw.githubusercontent.com/bcrant/diligence-doer/main/documentation/images/bmc-button.png" alt="Buy us coffee" width="200" />
     </a>
 </figure>
 
